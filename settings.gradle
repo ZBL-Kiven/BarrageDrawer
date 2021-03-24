@@ -1,0 +1,3 @@
+include ':Danmaku'
+include ':app'
+rootProject.name = "BarrageTest"
