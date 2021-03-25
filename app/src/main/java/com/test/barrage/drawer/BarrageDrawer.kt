@@ -128,7 +128,7 @@ abstract class BarrageDrawer(context: Context) : BaseDrawer(context) {
                     var top = info.top
                     if (info.top >= 0) {
                         top += paint.descent() - paint.ascent() / 2f
-                        canvas?.drawText(info.data?.text ?: "", info.start, top, paint)
+                        canvas?.drawText(info.data?.content ?: "", info.start, top, paint)
                     }
                 }
                 if (!holder.isPausedMove) {
@@ -143,7 +143,7 @@ abstract class BarrageDrawer(context: Context) : BaseDrawer(context) {
 
         override fun onHolderClick(v: DrawerSurfaceView, x: Int, y: Int, barrageHolder: BarrageHolder) {
             Handler(Looper.getMainLooper()).post {
-                Toast.makeText(context, "holder clicked! ==>  ${barrageHolder.bindData.data?.text}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "holder clicked! ==>  ${barrageHolder.bindData.data?.content}", Toast.LENGTH_SHORT).show()
                 barrageHolder.isPausedMove = false
             }
         }

@@ -9,6 +9,7 @@ import com.test.barrage.drawer.BarrageSurfaceView
 import com.test.barrage.info.BarrageDataInfo
 import com.zj.danmaku.drawer.BaseHolder
 import com.test.barrage.info.BarrageInfo
+import com.zj.danmaku.BarrageRepository
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -93,17 +94,13 @@ object BarrageDataStore {
     }
 
     fun getHolderData(paint: Paint, width: Int, height: Int, holder: BaseHolder<BarrageInfo>): BarrageInfo? {
-        val barrageData = BarrageDataInfo()
+        val barrageData = BarrageRepository.pollBarrage((getTimeLineListener?.invoke(key)?.div(1000))?.toInt() ?: return null, key)
         return if ((Random().nextFloat() * 300).toInt() == 108) {
             BarrageInfo().apply {
-                val timeLine = getTimeLineListener?.invoke(key) ?: return null
-
-                barrageData.uid = if ((Random().nextFloat() * 100).toInt() == 28) "1" else ""
-                val text = "${holder.hashCode()}.${BarrageDataInfo.forTestTxt}"
-                barrageData.text = text
+                barrageData ?: return null
                 this.start = width + 1.0f
                 val rect = Rect()
-                paint.getTextBounds(barrageData.text, 0, barrageData.text.length, rect)
+                paint.getTextBounds(barrageData.content, 0, barrageData.content.length, rect)
                 this.width = rect.width() + 0.5f
                 this.height = rect.height() + 0.5f
                 this.data = barrageData
