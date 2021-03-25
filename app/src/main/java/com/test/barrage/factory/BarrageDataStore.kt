@@ -84,7 +84,7 @@ object BarrageDataStore {
                         ballisticMap[ballistic] = dEnd
                     }
                     d.ratio = when {
-                        d.start >= width && curLastWidthInBallistic in 0f..d.lastStart -> 1f
+                        d.start >= width && curLastWidthInBallistic > d.lastStart -> 1f
                         d.start < width || curLastWidthInBallistic < 0 -> 1.0f
                         else -> 0f
                     }
