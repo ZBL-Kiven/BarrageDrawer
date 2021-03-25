@@ -2,13 +2,15 @@ package com.zj.danmaku.drawer;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.view.MotionEvent;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class HoldersInfo<T> {
+public abstract class HoldersInfo<H extends BaseHolder<T>, T> {
 
     public HoldersInfo(int maxCount) {
         if (holders == null) {
@@ -21,32 +23,53 @@ public abstract class HoldersInfo<T> {
         }
     }
 
-    private List<BaseHolder<T>> holders;
+    private List<H> holders;
 
     @NonNull
-    public abstract BaseHolder<T> getHolderType(int position);
+    public abstract H getHolderType(int position);
 
-    @NonNull
-    public abstract T getHolderData(@NonNull BaseHolder<T> holder);
+    @Nullable
+    public abstract T getHolderData(int width, int height, @NonNull H holder);
+
+    public abstract void updateDrawers(int width, int height, @NonNull List<H> holders);
 
     void upDateHoldersValue(Canvas canvas, int width, int height, float changedAlpha) {
-        if (holders == null || width <= 0 || height <= 0) return;
-        for (BaseHolder<T> holder : holders) {
-            if (holder.isInitialized()) holder.updateFrame(canvas, width, height, changedAlpha);
+        if (holders == null || holders.isEmpty() || width <= 0 || height <= 0) return;
+        updateDrawers(width, height, holders);
+        List<H> afterDrawerList = new ArrayList<>();
+        for (H holder : holders) {
+            if (holder.isIdle()) {
+                T holderData = getHolderData(width, height, holder);
+                if (holderData != null) holder.bindData(holderData);
+            } else {
+                if (holder.isDrawInTopLayer()) {
+                    afterDrawerList.add(holder);
+                } else holder.updateFrame(canvas, width, height, changedAlpha);
+            }
         }
+        if (!afterDrawerList.isEmpty()) for (H holder : afterDrawerList) {
+            holder.updateFrame(canvas, width, height, changedAlpha);
+        }
+    }
+
+    boolean onTouchEvent(@NonNull DrawerSurfaceView v, @NonNull MotionEvent event) {
+        if (holders == null || holders.isEmpty()) return true;
+        for (H holder : holders) {
+            if (holder.isInitialized() && !holder.onTouchEvent(v, event)) break;
+        }
+        return true;
     }
 
     void initHolders(Context context) {
         if (holders == null) return;
-        for (BaseHolder<T> holder : holders) {
-            T holderData = getHolderData(holder);
-            if (holderData != null && holder.isIdle()) holder.initData(context, holderData);
+        for (H holder : holders) {
+            holder.initData(context);
         }
     }
 
     void idleAllHolders() {
         if (holders == null) return;
-        for (BaseHolder<T> holder : holders) {
+        for (H holder : holders) {
             if (holder.isInitialized()) holder.destroyAndIdle();
         }
     }

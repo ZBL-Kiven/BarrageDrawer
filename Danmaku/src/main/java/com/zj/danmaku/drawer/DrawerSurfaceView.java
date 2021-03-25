@@ -1,16 +1,19 @@
 package com.zj.danmaku.drawer;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.PorterDuff;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.animation.AnimationUtils;
 
 
+@SuppressWarnings("unused")
 public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Callback {
 
     private final DrawThread mDrawThread;
@@ -29,7 +32,7 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
         init();
     }
 
-    private BaseDrawer curDrawer;
+    private BaseDrawer preDrawer, curDrawer;
     private float curDrawerAlpha = 0f;
     private int mWidth, mHeight;
     private Object currentKey;
@@ -38,7 +41,8 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
         curDrawerAlpha = 0f;
         final SurfaceHolder surfaceHolder = getHolder();
         surfaceHolder.addCallback(this);
-        surfaceHolder.setFormat(PixelFormat.RGBA_8888);
+        surfaceHolder.setFormat(PixelFormat.TRANSLUCENT);
+        setZOrderOnTop(true);
         mDrawThread.start();
     }
 
@@ -46,27 +50,27 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
         if (key != currentKey) {
             currentKey = key;
             setDrawer(drawer);
-            setZOrderOnTop(true);
         }
     }
 
     private void setDrawer(BaseDrawer drawer) {
-        if (drawer == null) {
-            return;
-        }
         curDrawerAlpha = 0f;
+        if (this.curDrawer != null) {
+            this.preDrawer = curDrawer;
+        }
         this.curDrawer = drawer;
+        post(this::onResume);
     }
 
     @Override
-    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        super.onSizeChanged(w, h, oldw, oldh);
+    protected void onSizeChanged(int w, int h, int oldW, int oldH) {
+        super.onSizeChanged(w, h, oldW, oldH);
         mWidth = w;
         mHeight = h;
     }
 
-
     private void drawSurface(Canvas canvas) {
+        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
         final int w = mWidth;
         final int h = mHeight;
         if (w == 0 || h == 0) {
@@ -75,11 +79,19 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
         if (curDrawer != null) {
             curDrawer.setSize(w, h);
             curDrawer.draw(canvas, curDrawerAlpha);
+        } else {
+            if (curDrawerAlpha >= 1f) onPause();
+        }
+        if (preDrawer != null && curDrawerAlpha < 1f) {
+            preDrawer.setSize(w, h);
+            preDrawer.draw(canvas, 1f - curDrawerAlpha);
         }
         if (curDrawerAlpha < 1f) {
             curDrawerAlpha += 0.04f;
             if (curDrawerAlpha > 1) {
                 curDrawerAlpha = 1f;
+                if (preDrawer != null) preDrawer.idleAllHolders();
+                preDrawer = null;
             }
         }
     }
@@ -105,7 +117,7 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
         synchronized (mDrawThread) {
             mDrawThread.notify();
         }
-        curDrawer.idleAllHolders();
+        if (curDrawer != null) curDrawer.idleAllHolders();
     }
 
     @Override
@@ -117,8 +129,7 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
     }
 
     @Override
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-    }
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) { }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
@@ -134,6 +145,13 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
             }
         }
         holder.removeCallback(this);
+    }
+
+    @Override
+    @SuppressLint("ClickableViewAccessibility")
+    public boolean onTouchEvent(MotionEvent event) {
+        if (event == null || curDrawer == null) return true;
+        return curDrawer.onTouchEvent(this, event) || super.onTouchEvent(event);
     }
 
     private class DrawThread extends Thread {

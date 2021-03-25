@@ -1,34 +1,47 @@
 package com.zj.danmaku.drawer;
 
 import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.util.DisplayMetrics;
+import android.view.MotionEvent;
+
+import androidx.annotation.NonNull;
 
 import java.util.List;
 
 
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "SameParameterValue"})
 public abstract class BaseDrawer {
 
     protected Context context;
     protected int width, height;
-    protected List<HoldersInfo<?>> holders;
+    protected List<HoldersInfo<?, ?>> holders;
 
     public BaseDrawer(Context context) {
-        this.context = context;
+        this.context = context.getApplicationContext();
     }
 
-    public abstract List<HoldersInfo<?>> getHolders();
+    public abstract List<HoldersInfo<?, ?>> getHolders();
+
+    public final boolean onTouchEvent(@NonNull DrawerSurfaceView v, @NonNull MotionEvent event) {
+        if (holders != null && !holders.isEmpty()) {
+            for (HoldersInfo<?, ?> info : holders) {
+                if (!info.onTouchEvent(v, event)) return true;
+            }
+        }
+        return true;
+    }
 
     private void initData() {
-        if (holders != null) for (HoldersInfo<?> info : holders) {
+        if (holders != null) for (HoldersInfo<?, ?> info : holders) {
             info.initHolders(context);
         }
     }
 
     void draw(Canvas canvas, float alpha) {
         if (holders != null) if (canDraw(canvas, alpha)) {
-            for (HoldersInfo<?> info : holders) {
+            for (HoldersInfo<?, ?> info : holders) {
                 info.upDateHoldersValue(canvas, width, height, alpha);
             }
         }
@@ -67,8 +80,12 @@ public abstract class BaseDrawer {
         return value * context.getResources().getDisplayMetrics().density + 0.5f;
     }
 
+    protected float sp2px(float spValue) {
+        return (int) (spValue * Resources.getSystem().getDisplayMetrics().scaledDensity + 0.5F);
+    }
+
     void idleAllHolders() {
-        if (holders != null) for (HoldersInfo<?> info : holders) {
+        if (holders != null) for (HoldersInfo<?, ?> info : holders) {
             info.idleAllHolders();
         }
     }
