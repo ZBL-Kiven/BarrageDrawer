@@ -10,6 +10,7 @@ import com.test.barrage.info.BarrageDataInfo
 import com.zj.danmaku.drawer.BaseHolder
 import com.test.barrage.info.BarrageInfo
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 object BarrageDataStore {
 
@@ -19,6 +20,7 @@ object BarrageDataStore {
     private var isFullMax = false
     private var getTimeLineListener: ((key: String) -> Long)? = null
     private var key: String = ""
+    private var ballisticMap = ConcurrentHashMap<Int, Float>()
 
     private var drawer: BarrageDrawer? = null
     private var barrageSurfaceView: BarrageSurfaceView? = null
@@ -64,24 +66,29 @@ object BarrageDataStore {
         if (curMaxBallisticNum <= 0) return
         holders.sortedByDescending { it.bindData?.data?.timeLine ?: 0 }
         val maxBallistic = getCurBallisticNum(width, height)
-        holders.forEachIndexed { index, h ->
+        val timeLine = getTimeLineListener?.invoke(key) ?: return
+        holders.forEach { h ->
             h.bindData?.let { d ->
-                val ballistic = h.position % maxBallistic
-                if (d.top <= 0f || d.ballistic !in 0..maxBallistic) {
-                    d.ballistic = ballistic
-                    d.top = ballistic * (d.height + ballisticInterval) + topPadding
+                val tl = d.data?.timeLine
+                d.ratio = 0f
+                if (tl != null && tl <= timeLine) {
+                    val ballistic = h.position % maxBallistic
+                    if (d.top <= 0f || d.ballistic !in 0..maxBallistic) {
+                        d.ballistic = ballistic
+                        d.top = ballistic * (d.height + ballisticInterval) + topPadding
+                    }
+                    val curLastWidthInBallistic = ballisticMap[ballistic] ?: -1f
+                    val dEnd = width - (d.start + d.width)
+                    if (curLastWidthInBallistic < 0f || curLastWidthInBallistic < dEnd) {
+                        ballisticMap[ballistic] = dEnd
+                    }
+                    d.ratio = when {
+                        d.start >= width && curLastWidthInBallistic in 0f..d.lastStart -> 1f
+                        d.start < width || curLastWidthInBallistic < 0 -> 1.0f
+                        else -> 0f
+                    }
                 }
-                if (d.start >= width) {
-
-                }
-                d.ratio = 1.0f
-
             }
-            //            baseHolder.bindData?.let { d ->
-            //                if (d.top <= 0) {
-            //                    d.top = height
-            //                }
-            //            }
         }
     }
 
@@ -100,6 +107,7 @@ object BarrageDataStore {
                 this.width = rect.width() + 0.5f
                 this.height = rect.height() + 0.5f
                 this.data = barrageData
+                this.lastStart = 300f
                 if (height > 0) {
                     curMaxBallisticNum = ((height - ballisticInterval - topPadding) / (this.height + ballisticInterval).coerceAtLeast(1f)).toInt()
                 }

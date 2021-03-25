@@ -9,6 +9,6 @@ class BarrageInfo {
     var height: Float = 0f
     var ratio: Float = 1.0f
     var step: Int = 3
-    var lastStart: Int = 0
+    var lastStart: Float = 0f
     var data: BarrageDataInfo? = null
 }

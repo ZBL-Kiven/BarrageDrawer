@@ -21,7 +21,7 @@ class MainActivity : AppCompatActivity() {
 
     fun clickToStart(v: View) {
         val barrageView = BarrageDataStore.start(this, "1111") {
-            return@start 1111111
+            return@start 99999999
         }
         val needAdd = (barrageView?.parent as? ViewGroup)?.let {
             if (it != container) {
