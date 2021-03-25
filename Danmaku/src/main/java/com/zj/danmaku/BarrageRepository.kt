@@ -63,23 +63,26 @@ object BarrageRepository {
      */
     private var mCachedTimeEnd = 0
 
+
+    var mockedTime = 2
     private fun loadBarrage(token: String, start: Int, end: Int) {
         mToken = token
         mCachedTimeEnd = end
-//        BarrageApi.getBarrageByTimeRange(start, end, token) { isSuccess, data, _ ->
-//            if (isSuccess && data != null) {
-//                val barrages = data.videoBarrageList
-//                if(!barrages.isNullOrEmpty()){
-//                    mBarrageQueue.addAll(barrages)
-//                    if (mSortedBarrageQueue.size < CACHE_SORTED_BARRAGE_COUNT) {
-//                        fillSortedBarrageQueue()
-//                    }
-//                }
-//            }
-//        }
-        for (i in 0 until Random.nextInt(20)) {
+        //        BarrageApi.getBarrageByTimeRange(start, end, token) { isSuccess, data, _ ->
+        //            if (isSuccess && data != null) {
+        //                val barrages = data.videoBarrageList
+        //                if(!barrages.isNullOrEmpty()){
+        //                    mBarrageQueue.addAll(barrages)
+        //                    if (mSortedBarrageQueue.size < CACHE_SORTED_BARRAGE_COUNT) {
+        //                        fillSortedBarrageQueue()
+        //                    }
+        //                }
+        //            }
+        //        }
+        for (i in 0 until 50) {
             val barrage = Barrage()
-            barrage.timeLine = Random.nextInt(50)
+            mockedTime += 1
+            barrage.timeLine = mockedTime
             barrage.userId = Random.nextInt(100)
             barrage.priority = Random.nextInt(1)
             barrage.content = "content : ${Random.nextInt(2000)}"
@@ -122,7 +125,7 @@ object BarrageRepository {
         val barrage = Barrage()
         barrage.content = content
         barrage.priority = Barrage.PRIORITY_LOCAL_SEND
-//        barrage.userId = LoginUtils.userId
+        //        barrage.userId = LoginUtils.userId
         barrage.userId = Random.nextInt(200000)
         barrage.timeLine = mTimeLine
         mSortedBarrageQueue.addFirst(barrage)
@@ -134,7 +137,7 @@ object BarrageRepository {
                 mBarrageQueue.add(barrage)
             }
         }
-//        BarrageApi.commitBarrage(content, mTimeLine, mToken)
+        //        BarrageApi.commitBarrage(content, mTimeLine, mToken)
         Log.e("luzheng", "commitBarrage: $mSortedBarrageQueue \n $mBarrageQueue")
     }
 
