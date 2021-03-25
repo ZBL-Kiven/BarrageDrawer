@@ -1,5 +1,7 @@
 package com.test.barrage.info
 
+import com.zj.danmaku.BarrageRepository
+
 class BarrageInfo {
 
     var start: Float = 0f
@@ -10,5 +12,5 @@ class BarrageInfo {
     var ratio: Float = 1.0f
     var step: Int = 3
     var lastStart: Int = 0
-    var data: BarrageDataInfo? = null
+    var data: BarrageRepository.Barrage? = null
 }

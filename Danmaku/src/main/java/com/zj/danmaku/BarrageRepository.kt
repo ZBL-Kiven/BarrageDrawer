@@ -77,7 +77,7 @@ object BarrageRepository {
 //                }
 //            }
 //        }
-        for (i in 0 until 2) {
+        for (i in 0 until Random.nextInt(20)) {
             val barrage = Barrage()
             barrage.timeLine = Random.nextInt(50)
             barrage.userId = Random.nextInt(100)
@@ -187,6 +187,10 @@ object BarrageRepository {
 
         override fun toString(): String {
             return "Barrage(userId=$userId, priority=$priority, timeLine=$timeLine, content=$content)"
+        }
+
+        fun isSelf(): Boolean {
+            return userId == 1
         }
     }
 }
