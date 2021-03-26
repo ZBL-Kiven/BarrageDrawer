@@ -1,6 +1,7 @@
 package com.zj.danmaku
 
 import android.util.Log
+import androidx.core.util.Pools
 import java.util.*
 import kotlin.Comparator
 import kotlin.collections.ArrayList
@@ -54,20 +55,24 @@ object BarrageRepository {
     private var mTimeLine: Int = 0
 
     /**
-     * The last index which the cache sorted barrage window skid over.
-     */
-    private var mSortedIndex = 0
-
-    /**
      * The time line which it's barrage list had been loaded in cache queue [mBarrageQueue].
      */
     private var mCachedTimeEnd = 0
-
 
     var mockedTime = 2
     private fun loadBarrage(token: String, start: Int, end: Int) {
         mToken = token
         mCachedTimeEnd = end
+        mBarrageQueue.iterator().apply {
+            while (hasNext()) {
+                val barrage = next()
+                if ((barrage.timeLine) < mTimeLine) {
+                    remove()
+                } else {
+                    break
+                }
+            }
+        }
         for (i in 0 until 150) {
             val barrage = Barrage()
             mockedTime = mTimeLine + Random.nextInt(5)
@@ -84,13 +89,12 @@ object BarrageRepository {
     }
 
     private fun fillSortedBarrageQueue() {
-        val firstIndex = mSortedIndex
-        if (firstIndex < 0) return
         val fillCount = CACHE_SORTED_BARRAGE_COUNT - mSortedBarrageQueue.size
-        mSortedIndex = (firstIndex + fillCount).coerceAtMost(mBarrageQueue.size)
-        for (i in firstIndex until mSortedIndex) {
+        for (i in 0 until fillCount.coerceAtMost(mBarrageQueue.size)) {
             val barrage = mBarrageQueue[i]
-            if (!mSortedBarrageQueue.contains(barrage)) mSortedBarrageQueue.offer(barrage)
+            if (!mSortedBarrageQueue.contains(barrage)) {
+                mSortedBarrageQueue.offer(barrage)
+            }
         }
         Collections.sort(mSortedBarrageQueue, Comparator { barrage1, barrage2 ->
             return@Comparator when (val timeOffset = barrage1.timeLine - barrage2.timeLine) {
@@ -100,8 +104,11 @@ object BarrageRepository {
         })
         mSortedBarrageQueue.iterator().apply {
             while (hasNext()) {
-                if (next().timeLine < mTimeLine) {
+                val barrage = next()
+                if ((barrage.timeLine) < mTimeLine) {
                     remove()
+                } else {
+                    break
                 }
             }
         }
@@ -109,22 +116,13 @@ object BarrageRepository {
 
     fun commitBarrage(content: String) {
         synchronized(mSortedBarrageQueue) {
-            val originalFirst = mSortedBarrageQueue.peek()
             val barrage = Barrage()
             barrage.content = content
             barrage.priority = Barrage.PRIORITY_LOCAL_SEND
             //        barrage.userId = LoginUtils.userId
             barrage.userId = 1
-            barrage.timeLine = mTimeLine + 150
+            barrage.timeLine = mTimeLine
             mSortedBarrageQueue.addFirst(barrage)
-            originalFirst?.let {
-                val originalFirstIndex = mBarrageQueue.indexOfFirst { originalFirst == it }
-                if (originalFirstIndex != -1) {
-                    mBarrageQueue.add(originalFirstIndex + 1, barrage)
-                } else {
-                    mBarrageQueue.add(barrage)
-                }
-            }
             //            Log.e("luzheng", "commitBarrage: $mSortedBarrageQueue ")
         }
     }
