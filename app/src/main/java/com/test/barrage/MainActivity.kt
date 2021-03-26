@@ -21,10 +21,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun clickToStart(v: View) {
-        var timeLineMocker = 1000L
+        val timeLineMocker = System.currentTimeMillis()
         val barrageView = BarrageDataStore.start(this, "1111") {
-            timeLineMocker += 100
-            return@start timeLineMocker
+            val tm = System.currentTimeMillis() - timeLineMocker
+            return@start tm / 1000
         }
         val needAdd = (barrageView?.parent as? ViewGroup)?.let {
             if (it != container) {
