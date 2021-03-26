@@ -56,6 +56,7 @@ object BarrageDataStore {
     fun stop() {
         getTimeLineListener = null
         barrageSurfaceView?.setDrawer("stop", null)
+        BarrageRepository.release()
     }
 
     fun destroy() {
