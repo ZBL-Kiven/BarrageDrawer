@@ -98,6 +98,13 @@ object BarrageRepository {
                 else -> timeOffset
             }
         })
+        mSortedBarrageQueue.iterator().apply {
+            while (hasNext()) {
+                if (next().timeLine < mTimeLine) {
+                    remove()
+                }
+            }
+        }
     }
 
     fun commitBarrage(content: String) {
