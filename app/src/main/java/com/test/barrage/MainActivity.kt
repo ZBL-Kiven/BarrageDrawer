@@ -36,6 +36,7 @@ class MainActivity : AppCompatActivity() {
 
     fun clickToStop(v: View) {
         BarrageDataStore.stop()
+        BarrageRepository.release()
     }
 
     override fun onResume() {

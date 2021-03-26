@@ -144,6 +144,14 @@ object BarrageRepository {
         }
     }
 
+    fun release() {
+        mSortedBarrageQueue.clear()
+        mBarrageQueue.clear()
+        mToken = ""
+        mTimeLine = 0
+        mCachedTimeEnd = 0
+    }
+
     class Barrage {
 
         companion object {
