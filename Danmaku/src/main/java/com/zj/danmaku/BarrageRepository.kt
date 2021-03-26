@@ -117,7 +117,6 @@ object BarrageRepository {
                 }
             }
         }
-        Log.e("luzheng", "fillSortedBarrageQueue: $mSortedBarrageQueue ")
     }
 
     fun commitBarrage(content: String) {
@@ -138,7 +137,6 @@ object BarrageRepository {
             }
         }
         //        BarrageApi.commitBarrage(content, mTimeLine, mToken)
-        Log.e("luzheng", "commitBarrage: $mSortedBarrageQueue \n $mBarrageQueue")
     }
 
     @Synchronized

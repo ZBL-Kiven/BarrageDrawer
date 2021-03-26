@@ -6,12 +6,11 @@ import android.graphics.Rect
 import android.view.ViewGroup
 import com.test.barrage.drawer.BarrageDrawer
 import com.test.barrage.drawer.BarrageSurfaceView
-import com.test.barrage.info.BarrageDataInfo
 import com.zj.danmaku.drawer.BaseHolder
 import com.test.barrage.info.BarrageInfo
 import com.zj.danmaku.BarrageRepository
-import java.util.*
-import java.util.concurrent.ConcurrentHashMap
+import kotlin.random.Random
+
 
 object BarrageDataStore {
 
@@ -21,7 +20,7 @@ object BarrageDataStore {
     private var isFullMax = false
     private var getTimeLineListener: ((key: String) -> Long)? = null
     private var key: String = ""
-    private var ballisticMap = ConcurrentHashMap<Int, Float>()
+    private var ballisticMap = mutableMapOf<Int, MutableList<BaseHolder<BarrageInfo>>>()
 
     private var drawer: BarrageDrawer? = null
     private var barrageSurfaceView: BarrageSurfaceView? = null
@@ -33,6 +32,10 @@ object BarrageDataStore {
         }
         barrageSurfaceView?.setDrawer("default_barrage_drawer", drawer)
         return barrageSurfaceView
+    }
+
+    private fun updateFullScreenState(inMax: Boolean) {
+        this.isFullMax = inMax
     }
 
     fun start(context: Context, key: String, getTimeLineListener: ((key: String) -> Long)): BarrageSurfaceView? {
@@ -65,51 +68,61 @@ object BarrageDataStore {
 
     fun updateDrawers(width: Int, height: Int, holders: List<BaseHolder<BarrageInfo>>) {
         if (curMaxBallisticNum <= 0) return
-        holders.sortedByDescending { it.bindData?.data?.timeLine ?: 0 }
         val maxBallistic = getCurBallisticNum(width, height)
         val timeLine = getTimeLineListener?.invoke(key) ?: return
         holders.forEach { h ->
+            val ballistic = h.position % maxBallistic
+            val bl = ballisticMap[ballistic]
+            val curBallistic = bl ?: mutableListOf()
+            if (bl.isNullOrEmpty()) ballisticMap[ballistic] = curBallistic
+            if (h.bindData != null) curBallistic.add(h)
+            if (curBallistic.isNotEmpty()) curBallistic.sortBy { it.bindData?.data?.timeLine ?: 0 }
             h.bindData?.let { d ->
                 val tl = d.data?.timeLine
-                d.ratio = 0f
                 if (tl != null && tl <= timeLine) {
-                    val ballistic = h.position % maxBallistic
-                    if (d.top <= 0f || d.ballistic !in 0..maxBallistic) {
+                    if (ballistic != d.ballistic) {
                         d.ballistic = ballistic
                         d.top = ballistic * (d.height + ballisticInterval) + topPadding
-                    }
-                    val curLastWidthInBallistic = ballisticMap[ballistic] ?: -1f
-                    val dEnd = width - (d.start + d.width)
-                    if (curLastWidthInBallistic < 0f || curLastWidthInBallistic < dEnd) {
-                        ballisticMap[ballistic] = dEnd
-                    }
-                    d.ratio = when {
-                        d.start >= width && curLastWidthInBallistic > d.lastStart -> 1f
-                        d.start < width || curLastWidthInBallistic < 0 -> 1.0f
-                        else -> 0f
                     }
                 }
             }
         }
+        ballisticMap.values.forEach { v ->
+            val first = v.groupBy {
+                val cur = it.bindData ?: return@groupBy false
+                cur.start + cur.width > 0 && cur.start <= width
+            }
+            if (first.isNullOrEmpty() || first[true].isNullOrEmpty()) v.firstOrNull()?.bindData?.stable = false
+            else {
+                first[true]?.forEach { it.bindData?.stable = false }
+                first[true]?.lastOrNull()?.bindData?.let { last ->
+                    val lastEnd = width - (last.start + last.width)
+                    val firstStable = first[false]?.firstOrNull()
+                    val bindData = firstStable?.bindData
+                    if (bindData != null && lastEnd >= bindData.lastStart) {
+                        bindData.stable = false
+                    }
+                }
+            }
+        }
+        ballisticMap.clear()
     }
 
     fun getHolderData(paint: Paint, width: Int, height: Int, holder: BaseHolder<BarrageInfo>): BarrageInfo? {
-        val barrageData = BarrageRepository.pollBarrage((getTimeLineListener?.invoke(key)?.div(1000))?.toInt() ?: return null, key)
-        return if ((Random().nextFloat() * 300).toInt() == 108) {
-            BarrageInfo().apply {
-                barrageData ?: return null
-                this.start = width + 1.0f
-                val rect = Rect()
-                paint.getTextBounds(barrageData.content, 0, barrageData.content.length, rect)
-                this.width = rect.width() + 0.5f
-                this.height = rect.height() + 0.5f
-                this.data = barrageData
-                this.lastStart = 300f
-                if (height > 0) {
-                    curMaxBallisticNum = ((height - ballisticInterval - topPadding) / (this.height + ballisticInterval).coerceAtLeast(1f)).toInt()
-                }
+        return BarrageInfo().apply {
+            val barrageData = BarrageRepository.pollBarrage((getTimeLineListener?.invoke(key)?.div(1000))?.toInt() ?: return null, key)
+            barrageData ?: return null
+            this.start = width + Random.nextFloat() * 300f
+            val rect = Rect()
+            paint.getTextBounds(barrageData.content, 0, barrageData.content.length, rect)
+            this.width = rect.width() + 0.5f
+            this.height = rect.height() + 0.5f
+            this.data = barrageData
+            this.lastStart = 100f
+            if (height > 0) {
+                curMaxBallisticNum = ((height - ballisticInterval - topPadding) / (this.height + ballisticInterval).coerceAtLeast(1f)).toInt()
             }
-        } else null
+        }
     }
 
     private fun getCurBallisticNum(width: Int, height: Int): Int {
