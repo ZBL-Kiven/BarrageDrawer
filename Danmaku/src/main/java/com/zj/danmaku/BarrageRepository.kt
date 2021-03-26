@@ -81,15 +81,16 @@ object BarrageRepository {
         //        }
         for (i in 0 until 50) {
             val barrage = Barrage()
-            mockedTime += 1
+            mockedTime  = mTimeLine + Random.nextInt(5)
             barrage.timeLine = mockedTime
             barrage.userId = Random.nextInt(100)
             barrage.priority = Random.nextInt(1)
-            barrage.content = "content : ${Random.nextInt(2000)}"
+            barrage.content = "content : ${barrage.timeLine}"
             mBarrageQueue.add(barrage)
         }
         if (mSortedBarrageQueue.size < CACHE_SORTED_BARRAGE_COUNT) {
             fillSortedBarrageQueue()
+            Log.e("luzheng", "loadBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue    @@@@$mTimeLine")
         }
     }
 
@@ -117,7 +118,7 @@ object BarrageRepository {
                 }
             }
         }
-        Log.e("luzheng", "fillSortedBarrageQueue: $mSortedBarrageQueue ")
+
     }
 
     fun commitBarrage(content: String) {
@@ -126,7 +127,7 @@ object BarrageRepository {
         barrage.content = content
         barrage.priority = Barrage.PRIORITY_LOCAL_SEND
         //        barrage.userId = LoginUtils.userId
-        barrage.userId = Random.nextInt(200000)
+        barrage.userId = 1
         barrage.timeLine = mTimeLine
         mSortedBarrageQueue.addFirst(barrage)
         originalFirst?.let {
@@ -152,7 +153,10 @@ object BarrageRepository {
         if (mTimeLine == mCachedTimeEnd - PREFETCH_THRESHOLD) {
             loadBarrage(token, mCachedTimeEnd, mCachedTimeEnd + PAGE_SIZE)
         }
-        return mSortedBarrageQueue.poll().apply { fillSortedBarrageQueue() }
+        return mSortedBarrageQueue.poll().apply {
+            fillSortedBarrageQueue()
+            Log.e("luzheng", "pollBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue  ~~~~~$mTimeLine")
+        }
     }
 
     class Barrage {
@@ -189,7 +193,7 @@ object BarrageRepository {
         var priority: Int = PRIORITY_NORMAL
 
         override fun toString(): String {
-            return "Barrage(userId=$userId, priority=$priority, timeLine=$timeLine, content=$content)"
+            return "$timeLine"
         }
 
         fun isSelf(): Boolean {
