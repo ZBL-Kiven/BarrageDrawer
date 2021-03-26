@@ -152,12 +152,12 @@ object BarrageRepository {
             return null
         }
         mTimeLine = timeLine
-        if (mTimeLine == mCachedTimeEnd - PREFETCH_THRESHOLD) {
+        if (mTimeLine >= mCachedTimeEnd - PREFETCH_THRESHOLD) {
             loadBarrage(token, mCachedTimeEnd, mCachedTimeEnd + PAGE_SIZE)
         }
         return mSortedBarrageQueue.poll().apply {
             fillSortedBarrageQueue()
-            Log.e("luzheng", "pollBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue  ~~~~~$mTimeLine")
+            Log.e("luzheng", "pollBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue  ~~~~~$mTimeLine   @@@@$mCachedTimeEnd")
         }
     }
 
