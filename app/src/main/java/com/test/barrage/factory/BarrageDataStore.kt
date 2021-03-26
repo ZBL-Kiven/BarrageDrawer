@@ -3,13 +3,13 @@ package com.test.barrage.factory
 import android.content.Context
 import android.graphics.Paint
 import android.graphics.Rect
-import android.util.Log
 import android.view.ViewGroup
 import com.test.barrage.drawer.BarrageDrawer
 import com.test.barrage.drawer.BarrageSurfaceView
 import com.zj.danmaku.drawer.BaseHolder
 import com.test.barrage.info.BarrageInfo
 import com.zj.danmaku.BarrageRepository
+import kotlin.random.Random
 
 
 object BarrageDataStore {
@@ -80,7 +80,7 @@ object BarrageDataStore {
                 }
                 d.top = ballistic * (d.height + ballisticInterval) + topPadding
                 val timeLine = getTimeLineListener?.invoke(key) ?: return@forEach
-                if (!d.stable || (d.data?.timeLine ?: 0) in timeLine - 1..timeLine + 1) curBallistic.add(h)
+                if (!d.stable || (d.data?.timeLine ?: 0) in timeLine - 5..timeLine + 5) curBallistic.add(h)
                 else h.destroyAndIdle()
             }
             ballisticMap?.put(ballistic, curBallistic)
@@ -96,21 +96,21 @@ object BarrageDataStore {
     }
 
     fun getHolderData(paint: Paint, width: Int, height: Int, holder: BaseHolder<BarrageInfo>): BarrageInfo? {
-        return BarrageInfo().apply {
-            val timeLine = (getTimeLineListener?.invoke(key))?.toInt() ?: return null
-            val barrageData = BarrageRepository.pollBarrage(timeLine, key)
-            barrageData ?: return null
-            this.start = width * 1f
-            val rect = Rect()
-            paint.getTextBounds(barrageData.content, 0, barrageData.content.length, rect)
-            this.width = rect.width() + 0.5f
-            this.height = rect.height() + 0.5f
-            this.data = barrageData
-            this.lastStart = 100f
-            if (height > 0) {
-                curMaxBallisticNum = ((height - ballisticInterval - topPadding) / (this.height + ballisticInterval).coerceAtLeast(1f)).toInt()
-            }
+        val bInfo = BarrageInfo()
+        val timeLine = (getTimeLineListener?.invoke(key))?.toInt() ?: return null
+        val barrageData = BarrageRepository.pollBarrage(timeLine, key)
+        barrageData ?: return null
+        bInfo.start = width * 1f
+        val rect = Rect()
+        paint.getTextBounds(barrageData.content, 0, barrageData.content.length, rect)
+        bInfo.width = rect.width() + 0.5f
+        bInfo.height = rect.height() + 0.5f
+        bInfo.data = barrageData
+        bInfo.lastStart = 100f
+        if (height > 0) {
+            curMaxBallisticNum = ((height - ballisticInterval - topPadding) / (bInfo.height + ballisticInterval).coerceAtLeast(1f)).toInt()
         }
+        return bInfo
     }
 
     private fun getCurBallisticNum(width: Int, height: Int): Int {

@@ -25,7 +25,7 @@ abstract class BarrageDrawer(context: Context) : BaseDrawer(context) {
     abstract fun getBarragePaint(): Paint
 
     final override fun getHolders(): MutableList<HoldersInfo<BarrageHolder, BarrageInfo>> {
-        val barrageHolder = object : HoldersInfo<BarrageHolder, BarrageInfo>(15) {
+        val barrageHolder = object : HoldersInfo<BarrageHolder, BarrageInfo>(25) {
 
             override fun getHolderType(position: Int): BarrageHolder {
                 return BarrageHolder(position)
