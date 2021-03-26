@@ -68,28 +68,18 @@ object BarrageRepository {
     private fun loadBarrage(token: String, start: Int, end: Int) {
         mToken = token
         mCachedTimeEnd = end
-        //        BarrageApi.getBarrageByTimeRange(start, end, token) { isSuccess, data, _ ->
-        //            if (isSuccess && data != null) {
-        //                val barrages = data.videoBarrageList
-        //                if(!barrages.isNullOrEmpty()){
-        //                    mBarrageQueue.addAll(barrages)
-        //                    if (mSortedBarrageQueue.size < CACHE_SORTED_BARRAGE_COUNT) {
-        //                        fillSortedBarrageQueue()
-        //                    }
-        //                }
-        //            }
-        //        }
-        for (i in 0 until 50) {
+        for (i in 0 until 150) {
             val barrage = Barrage()
-            mockedTime += 1
+            mockedTime = mTimeLine + Random.nextInt(5)
             barrage.timeLine = mockedTime
             barrage.userId = Random.nextInt(100)
             barrage.priority = Random.nextInt(1)
-            barrage.content = "content : ${Random.nextInt(2000)}"
+            barrage.content = "content : ${barrage.timeLine}"
             mBarrageQueue.add(barrage)
         }
         if (mSortedBarrageQueue.size < CACHE_SORTED_BARRAGE_COUNT) {
             fillSortedBarrageQueue()
+            Log.e("luzheng", "loadBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue    @@@@$mTimeLine")
         }
     }
 
@@ -108,35 +98,28 @@ object BarrageRepository {
                 else -> timeOffset
             }
         })
-        mSortedBarrageQueue.iterator().apply {
-            while (hasNext()) {
-                if (next().timeLine < mTimeLine) {
-                    remove()
-                } else {
-                    break
-                }
-            }
-        }
     }
 
     fun commitBarrage(content: String) {
-        val originalFirst = mSortedBarrageQueue.peek()
-        val barrage = Barrage()
-        barrage.content = content
-        barrage.priority = Barrage.PRIORITY_LOCAL_SEND
-        //        barrage.userId = LoginUtils.userId
-        barrage.userId = Random.nextInt(200000)
-        barrage.timeLine = mTimeLine
-        mSortedBarrageQueue.addFirst(barrage)
-        originalFirst?.let {
-            val originalFirstIndex = mBarrageQueue.indexOfFirst { originalFirst == it }
-            if (originalFirstIndex != -1) {
-                mBarrageQueue.add(originalFirstIndex + 1, barrage)
-            } else {
-                mBarrageQueue.add(barrage)
+        synchronized(mSortedBarrageQueue) {
+            val originalFirst = mSortedBarrageQueue.peek()
+            val barrage = Barrage()
+            barrage.content = content
+            barrage.priority = Barrage.PRIORITY_LOCAL_SEND
+            //        barrage.userId = LoginUtils.userId
+            barrage.userId = 1
+            barrage.timeLine = mTimeLine + 150
+            mSortedBarrageQueue.addFirst(barrage)
+            originalFirst?.let {
+                val originalFirstIndex = mBarrageQueue.indexOfFirst { originalFirst == it }
+                if (originalFirstIndex != -1) {
+                    mBarrageQueue.add(originalFirstIndex + 1, barrage)
+                } else {
+                    mBarrageQueue.add(barrage)
+                }
             }
+            //            Log.e("luzheng", "commitBarrage: $mSortedBarrageQueue ")
         }
-        //        BarrageApi.commitBarrage(content, mTimeLine, mToken)
     }
 
     @Synchronized
@@ -147,10 +130,13 @@ object BarrageRepository {
             return null
         }
         mTimeLine = timeLine
-        if (mTimeLine == mCachedTimeEnd - PREFETCH_THRESHOLD) {
+        if (mTimeLine >= mCachedTimeEnd - PREFETCH_THRESHOLD) {
             loadBarrage(token, mCachedTimeEnd, mCachedTimeEnd + PAGE_SIZE)
         }
-        return mSortedBarrageQueue.poll().apply { fillSortedBarrageQueue() }
+        return mSortedBarrageQueue.poll().apply {
+            fillSortedBarrageQueue()
+            //            Log.e("luzheng", "pollBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue  ~~~~~$mTimeLine   @@@@$mCachedTimeEnd")
+        }
     }
 
     class Barrage {
@@ -187,7 +173,7 @@ object BarrageRepository {
         var priority: Int = PRIORITY_NORMAL
 
         override fun toString(): String {
-            return "Barrage(userId=$userId, priority=$priority, timeLine=$timeLine, content=$content)"
+            return "$timeLine"
         }
 
         fun isSelf(): Boolean {
