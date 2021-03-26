@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import com.test.barrage.factory.BarrageDataStore
 import com.test.barrage.drawer.BarrageDrawer
+import com.zj.danmaku.BarrageRepository
 import com.zj.danmaku.drawer.DrawerSurfaceView
 
 class MainActivity : AppCompatActivity() {
@@ -50,5 +51,11 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         BarrageDataStore.destroy()
         super.onDestroy()
+    }
+
+    fun clickToCommit(view: View) {
+        BarrageDataStore.pause()
+        BarrageRepository.commitBarrage("我是刚才提交的弹幕")
+        BarrageDataStore.resume()
     }
 }

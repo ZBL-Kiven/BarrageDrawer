@@ -79,7 +79,7 @@ object BarrageRepository {
         //                }
         //            }
         //        }
-        for (i in 0 until 50) {
+        for (i in 0 until 150) {
             val barrage = Barrage()
             mockedTime  = mTimeLine + Random.nextInt(5)
             barrage.timeLine = mockedTime
@@ -122,24 +122,26 @@ object BarrageRepository {
     }
 
     fun commitBarrage(content: String) {
-        val originalFirst = mSortedBarrageQueue.peek()
-        val barrage = Barrage()
-        barrage.content = content
-        barrage.priority = Barrage.PRIORITY_LOCAL_SEND
-        //        barrage.userId = LoginUtils.userId
-        barrage.userId = 1
-        barrage.timeLine = mTimeLine
-        mSortedBarrageQueue.addFirst(barrage)
-        originalFirst?.let {
-            val originalFirstIndex = mBarrageQueue.indexOfFirst { originalFirst == it }
-            if (originalFirstIndex != -1) {
-                mBarrageQueue.add(originalFirstIndex + 1, barrage)
-            } else {
-                mBarrageQueue.add(barrage)
+        synchronized(mSortedBarrageQueue){
+            val originalFirst = mSortedBarrageQueue.peek()
+            val barrage = Barrage()
+            barrage.content = content
+            barrage.priority = Barrage.PRIORITY_LOCAL_SEND
+            //        barrage.userId = LoginUtils.userId
+            barrage.userId = 1
+            barrage.timeLine = mTimeLine + 150
+            mSortedBarrageQueue.addFirst(barrage)
+            originalFirst?.let {
+                val originalFirstIndex = mBarrageQueue.indexOfFirst { originalFirst == it }
+                if (originalFirstIndex != -1) {
+                    mBarrageQueue.add(originalFirstIndex + 1, barrage)
+                } else {
+                    mBarrageQueue.add(barrage)
+                }
             }
+            //        BarrageApi.commitBarrage(content, mTimeLine, mToken)
+            Log.e("luzheng", "commitBarrage: $mSortedBarrageQueue ")
         }
-        //        BarrageApi.commitBarrage(content, mTimeLine, mToken)
-        Log.e("luzheng", "commitBarrage: $mSortedBarrageQueue \n $mBarrageQueue")
     }
 
     @Synchronized
