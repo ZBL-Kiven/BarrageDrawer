@@ -96,12 +96,12 @@ object BarrageDataStore {
         ballisticMap = null
     }
 
-    fun getHolderData(paint: Paint, width: Int, height: Int, holder: BaseHolder<BarrageInfo>): BarrageInfo? {
+    fun getHolderData(paint: Paint, width: Int, height: Int, holder: BarrageDrawer.BarrageHolder): BarrageInfo? {
         val bInfo = BarrageInfo()
         val timeLine = (getTimeLineListener?.invoke(key))?.toInt() ?: return null
         val barrageData = BarrageRepository.pollBarrage(timeLine, key)
         barrageData ?: return null
-        bInfo.start = width * 1f
+        bInfo.start = width * 1f + holder.randomStart
         val rect = Rect()
         paint.getTextBounds(barrageData.content, 0, barrageData.content.length, rect)
         bInfo.width = rect.width() + 0.5f

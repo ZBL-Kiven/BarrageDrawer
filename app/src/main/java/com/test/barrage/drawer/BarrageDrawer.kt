@@ -11,6 +11,7 @@ import com.test.barrage.factory.BarrageDataStore
 import com.test.barrage.graphics.UTL
 import com.test.barrage.info.BarrageInfo
 import com.zj.danmaku.drawer.*
+import kotlin.random.Random
 
 /**
  * Used to draw barrage
@@ -44,6 +45,7 @@ abstract class BarrageDrawer(context: Context) : BaseDrawer(context) {
 
     inner class BarrageHolder(position: Int) : BaseHolder<BarrageInfo>(position) {
         var isPausedMove = false
+        val randomStart = Random.nextFloat() * 300f
         private var lastTouchedPoint: PointF? = null
         override fun updateFrame(canvas: Canvas?, width: Int, height: Int, changedAlpha: Float) {
             this@BarrageDrawer.updateFrame(this, canvas, width, height, changedAlpha)
