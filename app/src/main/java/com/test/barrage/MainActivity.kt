@@ -6,9 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import com.test.barrage.factory.BarrageDataStore
-import com.test.barrage.drawer.BarrageDrawer
-import com.zj.danmaku.BarrageRepository
-import com.zj.danmaku.drawer.DrawerSurfaceView
+import com.test.barrage.factory.BarrageRepository
 
 class MainActivity : AppCompatActivity() {
 
@@ -55,7 +53,7 @@ class MainActivity : AppCompatActivity() {
 
     fun clickToCommit(view: View) {
         BarrageDataStore.pause()
-        BarrageRepository.commitBarrage("我是刚才提交的弹幕")
+        BarrageRepository.commitBarrage("I just submitted the bullet screen")
         BarrageDataStore.resume()
     }
 }

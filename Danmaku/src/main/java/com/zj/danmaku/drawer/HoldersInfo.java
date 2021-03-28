@@ -2,6 +2,7 @@ package com.zj.danmaku.drawer;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.util.Log;
 import android.view.MotionEvent;
 
 import androidx.annotation.NonNull;
@@ -35,16 +36,16 @@ public abstract class HoldersInfo<H extends BaseHolder<T>, T> {
 
     void upDateHoldersValue(Canvas canvas, int width, int height, float changedAlpha) {
         if (holders == null || holders.isEmpty() || width <= 0 || height <= 0) return;
-        updateDrawers(width, height, holders);
         List<H> afterDrawerList = new ArrayList<>();
         for (H holder : holders) {
             if (holder.isIdle()) {
                 T holderData = getHolderData(width, height, holder);
                 if (holderData != null) holder.bindData(holderData);
             } else {
+                updateDrawers(width, height, holders);
                 if (holder.isDrawInTopLayer()) {
                     afterDrawerList.add(holder);
-                } else holder.updateFrame(canvas, width, height, changedAlpha);
+                } else if (holder.bindData != null) holder.updateFrame(canvas, width, height, changedAlpha);
             }
         }
         if (!afterDrawerList.isEmpty()) for (H holder : afterDrawerList) {

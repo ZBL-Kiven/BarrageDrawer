@@ -26,7 +26,7 @@ abstract class BarrageDrawer(context: Context) : BaseDrawer(context) {
     abstract fun getBarragePaint(): Paint
 
     final override fun getHolders(): MutableList<HoldersInfo<BarrageHolder, BarrageInfo>> {
-        val barrageHolder = object : HoldersInfo<BarrageHolder, BarrageInfo>(25) {
+        val barrageHolder = object : HoldersInfo<BarrageHolder, BarrageInfo>(15) {
 
             override fun getHolderType(position: Int): BarrageHolder {
                 return BarrageHolder(position)
@@ -143,11 +143,12 @@ abstract class BarrageDrawer(context: Context) : BaseDrawer(context) {
             }
         }
 
+        private val handler = Handler(Looper.getMainLooper())
         override fun onHolderClick(v: DrawerSurfaceView, x: Int, y: Int, barrageHolder: BarrageHolder) {
-            Handler(Looper.getMainLooper()).post {
+            handler.post {
                 Toast.makeText(context, "holder clicked! ==>  ${barrageHolder.bindData.data?.content}", Toast.LENGTH_SHORT).show()
-                barrageHolder.isPausedMove = false
             }
+            handler.postDelayed({ barrageHolder.isPausedMove = false }, 500)
         }
 
         override fun getBarragePaint(): Paint {

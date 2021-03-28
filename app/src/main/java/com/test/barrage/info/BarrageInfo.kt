@@ -1,6 +1,6 @@
 package com.test.barrage.info
 
-import com.zj.danmaku.BarrageRepository
+import com.test.barrage.factory.BarrageRepository
 
 class BarrageInfo {
     var start: Float = 0f

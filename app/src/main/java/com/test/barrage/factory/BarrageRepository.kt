@@ -1,7 +1,6 @@
-package com.zj.danmaku
+package com.test.barrage.factory
 
 import android.util.Log
-import androidx.core.util.Pools
 import java.util.*
 import kotlin.Comparator
 import kotlin.collections.ArrayList
@@ -59,7 +58,11 @@ object BarrageRepository {
      */
     private var mCachedTimeEnd = 0
 
-    var mockedTime = 2
+    private var mockedTime = 0
+        get() {
+            return field++
+        }
+
     private fun loadBarrage(token: String, start: Int, end: Int) {
         mToken = token
         mCachedTimeEnd = end
@@ -75,7 +78,6 @@ object BarrageRepository {
         }
         for (i in 0 until 150) {
             val barrage = Barrage()
-            mockedTime = mTimeLine + Random.nextInt(5)
             barrage.timeLine = mockedTime
             barrage.userId = Random.nextInt(100)
             barrage.priority = Random.nextInt(1)
@@ -138,9 +140,9 @@ object BarrageRepository {
         if (mTimeLine >= mCachedTimeEnd - PREFETCH_THRESHOLD) {
             loadBarrage(token, mCachedTimeEnd, mCachedTimeEnd + PAGE_SIZE)
         }
-        return mSortedBarrageQueue.poll().apply {
+        return mSortedBarrageQueue.poll()?.apply {
             fillSortedBarrageQueue()
-            //            Log.e("luzheng", "pollBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue  ~~~~~$mTimeLine   @@@@$mCachedTimeEnd")
+            if (isSelf()) Log.e("-----", "pollBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue  ~~~~~$mTimeLine   @@@@$mCachedTimeEnd")
         }
     }
 
