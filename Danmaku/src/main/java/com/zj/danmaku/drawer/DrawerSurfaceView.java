@@ -8,6 +8,7 @@ import android.graphics.PixelFormat;
 import android.graphics.PorterDuff;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
+import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.ViewGroup;
@@ -178,9 +179,15 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
         private Canvas canvas;
 
         private void release() {
-            if (canvas != null) mSurface.getSurface().unlockCanvasAndPost(canvas);
-            mSurface.getSurface().release();
+            if (mSurface != null) {
+                Surface surface = mSurface.getSurface();
+                if (surface != null) {
+                    if (canvas != null) surface.unlockCanvasAndPost(canvas);
+                    surface.release();
+                }
+            }
             post(DrawerSurfaceView.this::removeFormParent);
+            mSurface = null;
         }
 
         @Override
