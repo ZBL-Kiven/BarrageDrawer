@@ -2,7 +2,6 @@ package com.zj.danmaku.drawer;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.util.Log;
 import android.view.MotionEvent;
 
 import androidx.annotation.NonNull;
@@ -54,11 +53,11 @@ public abstract class HoldersInfo<H extends BaseHolder<T>, T> {
     }
 
     boolean onTouchEvent(@NonNull DrawerSurfaceView v, @NonNull MotionEvent event) {
-        if (holders == null || holders.isEmpty()) return true;
+        if (holders == null || holders.isEmpty()) return false;
         for (H holder : holders) {
-            if (holder.isInitialized() && !holder.onTouchEvent(v, event)) break;
+            if (holder.isInitialized() && holder.onTouchEvent(v, event)) return true;
         }
-        return true;
+        return false;
     }
 
     void initHolders(Context context) {

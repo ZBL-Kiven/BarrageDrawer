@@ -46,7 +46,6 @@ abstract class BarrageDrawer(context: Context) : BaseDrawer(context) {
     inner class BarrageHolder(position: Int) : BaseHolder<BarrageInfo>(position) {
         var isPausedMove = false
         val randomStart = Random.nextFloat() * 300f
-        private var lastTouchedPoint: PointF? = null
         override fun updateFrame(canvas: Canvas?, width: Int, height: Int, changedAlpha: Float) {
             this@BarrageDrawer.updateFrame(this, canvas, width, height, changedAlpha)
         }
@@ -67,9 +66,8 @@ abstract class BarrageDrawer(context: Context) : BaseDrawer(context) {
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
                         if (rect.contains(point)) {
-                            lastTouchedPoint = point
                             isPausedMove = true
-                            return false
+                            return true
                         }
                     }
                     MotionEvent.ACTION_MOVE -> {
@@ -80,13 +78,14 @@ abstract class BarrageDrawer(context: Context) : BaseDrawer(context) {
                     MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_UP -> {
                         if (rect.contains(point)) {
                             this@BarrageDrawer.onHolderClick(v, event.x.toInt(), event.y.toInt(), this)
+                            return true
                         } else {
                             isPausedMove = false
                         }
                     }
                 }
             }
-            return true
+            return false
         }
     }
 

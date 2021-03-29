@@ -29,7 +29,7 @@ class MainActivity : AppCompatActivity() {
                 it.removeView(barrageView);true
             } else false
         } ?: true
-        if (needAdd) container.addView(barrageView, FrameLayout.LayoutParams(-1, -1))
+        if (needAdd) container.addView(barrageView, FrameLayout.LayoutParams(-2, -2))
     }
 
     fun clickToStop(v: View) {

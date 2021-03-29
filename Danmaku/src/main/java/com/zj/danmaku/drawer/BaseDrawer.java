@@ -27,10 +27,10 @@ public abstract class BaseDrawer {
     public final boolean onTouchEvent(@NonNull DrawerSurfaceView v, @NonNull MotionEvent event) {
         if (holders != null && !holders.isEmpty()) {
             for (HoldersInfo<?, ?> info : holders) {
-                if (!info.onTouchEvent(v, event)) return true;
+                if (info.onTouchEvent(v, event)) return true;
             }
         }
-        return true;
+        return false;
     }
 
     private void initData() {

@@ -29,10 +29,10 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginEnd="30dp"
             android:background="#acc"
             android:onClick="clickToStop"
             android:padding="10dp"
-            android:layout_marginEnd="30dp"
             android:text="stop!" />
 
         <TextView
@@ -44,10 +44,18 @@
             android:text="commit" />
     </LinearLayout>
 
+    <View
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:background="#ccc"
+        android:onClick="clickToStop"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <FrameLayout
         android:id="@+id/mContainer"
         android:layout_width="match_parent"
-        android:layout_height="300dp"
+        android:layout_height="200dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 

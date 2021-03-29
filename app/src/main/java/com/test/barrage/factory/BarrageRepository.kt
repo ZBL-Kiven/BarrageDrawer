@@ -142,7 +142,7 @@ object BarrageRepository {
         }
         return mSortedBarrageQueue.poll()?.apply {
             fillSortedBarrageQueue()
-            if (isSelf()) Log.e("-----", "pollBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue  ~~~~~$mTimeLine   @@@@$mCachedTimeEnd")
+            if (isSelf()) Log.e("luzheng", "pollBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue  ~~~~~$mTimeLine   @@@@$mCachedTimeEnd")
         }
     }
 
