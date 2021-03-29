@@ -3,18 +3,18 @@ package com.test.barrage.factory
 import android.content.Context
 import android.graphics.Paint
 import android.graphics.Rect
-import android.util.Log
+import android.view.View
 import android.view.ViewGroup
-import android.view.animation.AccelerateInterpolator
 import com.test.barrage.drawer.BarrageDrawer
 import com.test.barrage.drawer.BarrageSurfaceView
-import com.zj.danmaku.drawer.BaseHolder
 import com.test.barrage.info.BarrageInfo
+import com.zj.danmaku.drawer.BaseHolder
 import java.lang.Exception
 import kotlin.math.max
 import kotlin.random.Random
 
 
+@Suppress("unused")
 object BarrageDataStore {
 
     private var curMaxBallisticNum = 0
@@ -24,49 +24,53 @@ object BarrageDataStore {
     private var getTimeLineListener: ((key: String) -> Long)? = null
     private var key: String = ""
     private var isPerDrawerRunning = false
-    private val interceptor = AccelerateInterpolator(1.5f)
 
     private var drawer: BarrageDrawer? = null
     private var barrageSurfaceView: BarrageSurfaceView? = null
 
-    private fun getBarrageView(context: Context, required: Boolean = true): BarrageSurfaceView? {
-        if (required && drawer == null) drawer = BarrageDrawer.Drawer(context)
-        if (required && barrageSurfaceView == null) {
+    private fun start(context: Context) {
+        if (drawer == null) drawer = BarrageDrawer.Drawer(context)
+        if (barrageSurfaceView == null) {
             barrageSurfaceView = BarrageSurfaceView(context)
+            barrageSurfaceView?.setLayerType(View.LAYER_TYPE_SOFTWARE, null)
         }
         barrageSurfaceView?.setDrawer("default_barrage_drawer", drawer)
-        return barrageSurfaceView
     }
 
-    private fun updateFullScreenState(inMax: Boolean) {
-        this.isFullMax = inMax
+    fun updateFullScreenState(inMax: Boolean) {
+        isFullMax = inMax
     }
 
     fun start(context: Context, key: String, getTimeLineListener: ((key: String) -> Long)): BarrageSurfaceView? {
-        this.getTimeLineListener = getTimeLineListener
-        this.key = key
-        val barrageSurfaceView = getBarrageView(context)
-        barrageSurfaceView?.onResume()
+        BarrageDataStore.getTimeLineListener = getTimeLineListener
+        if (BarrageDataStore.key != key) {
+            BarrageDataStore.key = key
+        }
+        start(context)
         return barrageSurfaceView
     }
 
     fun resume() {
         barrageSurfaceView?.onResume()
+        drawer?.hidden = false
     }
 
     fun pause() {
         barrageSurfaceView?.onPause()
     }
 
+    fun interrupt() {
+        drawer?.hidden = true
+    }
+
     fun stop() {
-        getTimeLineListener = null
         barrageSurfaceView?.setDrawer("stop", null)
         BarrageRepository.release()
     }
 
     fun destroy() {
         drawer = null
-        (barrageSurfaceView?.parent as? ViewGroup)?.removeView(barrageSurfaceView)
+        getTimeLineListener = null
         barrageSurfaceView?.onDestroy()
         barrageSurfaceView = null
     }
@@ -90,6 +94,7 @@ object BarrageDataStore {
                     }
                     d.top = ballistic * (d.height + ballisticInterval) + topPadding
                     val timeLine = getTimeLineListener?.invoke(key) ?: return@forEach
+                    if (timeLine < 0) return@updateDrawers
                     val dataTimeLine = d.data?.timeLine ?: 0
                     if (!d.stable || dataTimeLine >= timeLine || d.data?.isSelf() == true) curBallistic.add(h)
                     else h.destroyAndIdle()
@@ -147,6 +152,7 @@ object BarrageDataStore {
         return bInfo
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private fun getCurBallisticNum(width: Int, height: Int): Int {
         return (if (isFullMax) 3 else 5).coerceAtMost(curMaxBallisticNum)
     }

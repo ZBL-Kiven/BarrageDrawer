@@ -10,7 +10,10 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.ViewGroup;
 import android.view.animation.AnimationUtils;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 @SuppressWarnings("unused")
@@ -42,7 +45,6 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
         final SurfaceHolder surfaceHolder = getHolder();
         surfaceHolder.addCallback(this);
         surfaceHolder.setFormat(PixelFormat.TRANSLUCENT);
-        setZOrderOnTop(true);
         mDrawThread.start();
     }
 
@@ -97,27 +99,34 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
     }
 
     public void onResume() {
-        if (mDrawThread.mRunning) return;
+        if (mDrawThread.mRunning.get()) return;
         synchronized (mDrawThread) {
-            mDrawThread.mRunning = true;
+            mDrawThread.mRunning.set(true);
             mDrawThread.notify();
         }
     }
 
     public void onPause() {
-        if (!mDrawThread.mRunning) return;
-        mDrawThread.mRunning = false;
+        if (!mDrawThread.mRunning.get()) return;
+        mDrawThread.mRunning.set(false);
         synchronized (mDrawThread) {
             mDrawThread.notify();
         }
     }
 
     public void onDestroy() {
-        mDrawThread.mQuit = true;
+        if (curDrawer != null) curDrawer.idleAllHolders();
+        mDrawThread.mQuit.set(true);
         synchronized (mDrawThread) {
             mDrawThread.notify();
         }
-        if (curDrawer != null) curDrawer.idleAllHolders();
+    }
+
+    public void removeFormParent() {
+        Object parent = getParent();
+        if (parent instanceof ViewGroup) {
+            ((ViewGroup) parent).removeView(this);
+        }
     }
 
     @Override
@@ -136,7 +145,7 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
         synchronized (mDrawThread) {
             mDrawThread.mSurface = holder;
             mDrawThread.notify();
-            while (mDrawThread.mActive) {
+            while (mDrawThread.mActive.get()) {
                 try {
                     mDrawThread.wait();
                 } catch (InterruptedException e) {
@@ -148,6 +157,13 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
     }
 
     @Override
+    protected void onAttachedToWindow() {
+        setZOrderOnTop(true);
+        setLayerType(LAYER_TYPE_SOFTWARE, null);
+        super.onAttachedToWindow();
+    }
+
+    @Override
     @SuppressLint("ClickableViewAccessibility")
     public boolean onTouchEvent(MotionEvent event) {
         if (event == null || curDrawer == null) return true;
@@ -156,20 +172,32 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
 
     private class DrawThread extends Thread {
         SurfaceHolder mSurface;
-        boolean mRunning;
-        boolean mActive;
-        boolean mQuit;
+        AtomicBoolean mRunning = new AtomicBoolean(false);
+        AtomicBoolean mActive = new AtomicBoolean(false);
+        AtomicBoolean mQuit = new AtomicBoolean(false);
+        private Canvas canvas;
+
+        private void release() {
+            if (canvas != null) mSurface.getSurface().unlockCanvasAndPost(canvas);
+            mSurface.getSurface().release();
+            post(DrawerSurfaceView.this::removeFormParent);
+        }
 
         @Override
         public void run() {
             while (true) {
                 synchronized (this) {
-                    while (mSurface == null || !mRunning) {
-                        if (mActive) {
-                            mActive = false;
+                    if (mQuit.get()) {
+                        release();
+                        return;
+                    }
+                    while (mSurface == null || !mSurface.getSurface().isValid() || getParent() == null || !mRunning.get()) {
+                        if (mActive.get()) {
+                            mActive.set(false);
                             notify();
                         }
-                        if (mQuit) {
+                        if (mQuit.get()) {
+                            release();
                             return;
                         }
                         try {
@@ -178,16 +206,18 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
                             e.printStackTrace();
                         }
                     }
-                    if (!mActive) {
-                        mActive = true;
+                    if (!mActive.get()) {
+                        mActive.set(true);
                         notify();
                     }
                     final long startTime = AnimationUtils.currentAnimationTimeMillis();
-                    Canvas canvas = mSurface.lockCanvas();
-                    if (canvas != null) {
-                        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
-                        drawSurface(canvas);
-                        mSurface.unlockCanvasAndPost(canvas);
+                    if (mSurface.getSurface().isValid()) {
+                        Canvas canvas = mSurface.lockCanvas();
+                        if (canvas != null) {
+                            canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+                            drawSurface(canvas);
+                            if (mSurface.getSurface().isValid()) mSurface.unlockCanvasAndPost(canvas);
+                        }
                     }
                     final long drawTime = AnimationUtils.currentAnimationTimeMillis() - startTime;
                     final long needSleepTime = 16 - drawTime;

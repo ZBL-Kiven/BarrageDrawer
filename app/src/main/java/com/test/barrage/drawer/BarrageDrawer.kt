@@ -17,13 +17,18 @@ import kotlin.random.Random
  * Used to draw barrage
  * */
 abstract class BarrageDrawer(context: Context) : BaseDrawer(context) {
-
     abstract fun getBallisticNum(width: Int, height: Int): Int
     abstract fun getHolderData(width: Int, height: Int, holder: BarrageHolder): BarrageInfo?
     abstract fun onHolderClick(v: DrawerSurfaceView, x: Int, y: Int, barrageHolder: BarrageHolder)
     abstract fun updateDrawers(width: Int, height: Int, holders: List<BarrageHolder>)
     abstract fun updateFrame(holder: BarrageHolder, canvas: Canvas?, width: Int, height: Int, changedAlpha: Float)
     abstract fun getBarragePaint(): Paint
+
+    var hidden: Boolean = false
+
+    override fun canDraw(canvas: Canvas?, alpha: Float): Boolean {
+        return !hidden
+    }
 
     final override fun getHolders(): MutableList<HoldersInfo<BarrageHolder, BarrageInfo>> {
         val barrageHolder = object : HoldersInfo<BarrageHolder, BarrageInfo>(15) {
@@ -91,7 +96,6 @@ abstract class BarrageDrawer(context: Context) : BaseDrawer(context) {
 
     @Suppress("unused")
     open class Drawer(context: Context) : BarrageDrawer(context) {
-
         private val normalPaint = Paint()
         private val pausedItemPaint = Paint().apply {
             this.color = Color.parseColor("#70000000")

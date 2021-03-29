@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import com.test.barrage.drawer.BarrageSurfaceView
 import com.test.barrage.factory.BarrageDataStore
 import com.test.barrage.factory.BarrageRepository
 
@@ -19,17 +20,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun clickToStart(v: View) {
-        val timeLineMocker = System.currentTimeMillis()
-        val barrageView = BarrageDataStore.start(this, "1111") {
-            val tm = System.currentTimeMillis() - timeLineMocker
-            return@start tm / 1000
-        }
-        val needAdd = (barrageView?.parent as? ViewGroup)?.let {
+        val barrageView = startBarrage() ?: return
+        val needAdd = (barrageView.parent as? ViewGroup)?.let {
             if (it != container) {
                 it.removeView(barrageView);true
             } else false
         } ?: true
-        if (needAdd) container.addView(barrageView, FrameLayout.LayoutParams(-2, -2))
+        if (needAdd) container.addView(barrageView, FrameLayout.LayoutParams(-2, 400)) else BarrageDataStore.resume()
     }
 
     fun clickToStop(v: View) {
@@ -55,5 +52,20 @@ class MainActivity : AppCompatActivity() {
         BarrageDataStore.pause()
         BarrageRepository.commitBarrage("I just submitted the bullet screen")
         BarrageDataStore.resume()
+    }
+
+    fun removeAndAdd(view: View) {
+        BarrageDataStore.destroy()
+        clickToStart(view)
+    }
+
+    private val timeLineMocker = System.currentTimeMillis()
+    private val onProgressGet = { _: String ->
+        (System.currentTimeMillis() - timeLineMocker) / 1000
+    }
+
+
+    private fun startBarrage(): BarrageSurfaceView? {
+        return BarrageDataStore.start(this, "11111", onProgressGet)
     }
 }
