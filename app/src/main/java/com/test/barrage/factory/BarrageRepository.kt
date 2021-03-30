@@ -131,18 +131,24 @@ object BarrageRepository {
 
     @Synchronized
     fun pollBarrage(timeLine: Int, token: String): Barrage? {
-        if (token != mToken) {
-            mSortedBarrageQueue.clear()
-            loadBarrage(token, timeLine, timeLine + PAGE_SIZE)
-            return null
-        }
-        mTimeLine = timeLine
-        if (mTimeLine >= mCachedTimeEnd - PREFETCH_THRESHOLD) {
-            loadBarrage(token, mCachedTimeEnd, mCachedTimeEnd + PAGE_SIZE)
-        }
-        return mSortedBarrageQueue.poll()?.apply {
-            fillSortedBarrageQueue()
-            if (isSelf()) Log.e("luzheng", "pollBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue  ~~~~~$mTimeLine   @@@@$mCachedTimeEnd")
+        //        if (token != mToken) {
+        //            mSortedBarrageQueue.clear()
+        //            loadBarrage(token, timeLine, timeLine + PAGE_SIZE)
+        //            return null
+        //        }
+        //        mTimeLine = timeLine
+        //        if (mTimeLine >= mCachedTimeEnd - PREFETCH_THRESHOLD) {
+        //            loadBarrage(token, mCachedTimeEnd, mCachedTimeEnd + PAGE_SIZE)
+        //        }
+        //        return mSortedBarrageQueue.poll()?.apply {
+        //            fillSortedBarrageQueue()
+        //            if (isSelf()) Log.e("luzheng", "pollBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue  ~~~~~$mTimeLine   @@@@$mCachedTimeEnd")
+        //        }
+        return Barrage().apply {
+            this.content = "$token==$timeLine"
+            this.id = 1
+            this.priority = 1
+            this.userId = 1
         }
     }
 

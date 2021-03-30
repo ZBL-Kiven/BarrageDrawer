@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Callback {
 
     private final DrawThread mDrawThread;
+    private RemoveFormParentListener removeFormParentListener;
 
     public DrawerSurfaceView(Context context) {
         this(context, null);
@@ -63,6 +64,10 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
         }
         this.curDrawer = drawer;
         post(this::onResume);
+    }
+
+    public void setOnRemoveFormParentListener(RemoveFormParentListener l) {
+        this.removeFormParentListener = l;
     }
 
     @Override
@@ -128,6 +133,7 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
         if (parent instanceof ViewGroup) {
             ((ViewGroup) parent).removeView(this);
         }
+        if (removeFormParentListener != null) removeFormParentListener.onRemoved();
     }
 
     @Override
@@ -179,15 +185,20 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
         private Canvas canvas;
 
         private void release() {
-            if (mSurface != null) {
-                Surface surface = mSurface.getSurface();
-                if (surface != null) {
-                    if (canvas != null) surface.unlockCanvasAndPost(canvas);
-                    surface.release();
+            try {
+                if (mSurface != null) {
+                    Surface surface = mSurface.getSurface();
+                    if (surface != null) {
+                        if (canvas != null) surface.unlockCanvasAndPost(canvas);
+                        surface.release();
+                    }
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                mSurface = null;
+                post(DrawerSurfaceView.this::removeFormParent);
             }
-            post(DrawerSurfaceView.this::removeFormParent);
-            mSurface = null;
         }
 
         @Override
@@ -239,5 +250,9 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
                 }
             }
         }
+    }
+
+    interface RemoveFormParentListener {
+        void onRemoved();
     }
 }

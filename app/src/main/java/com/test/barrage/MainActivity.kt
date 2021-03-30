@@ -26,7 +26,7 @@ class MainActivity : AppCompatActivity() {
                 it.removeView(barrageView);true
             } else false
         } ?: true
-        if (needAdd) container.addView(barrageView, FrameLayout.LayoutParams(-2, 400)) else BarrageDataStore.resume()
+        if (needAdd) container.addView(barrageView, FrameLayout.LayoutParams(-1, -1)) else BarrageDataStore.resume()
     }
 
     fun clickToStop(v: View) {
@@ -59,9 +59,10 @@ class MainActivity : AppCompatActivity() {
         clickToStart(view)
     }
 
-    private val timeLineMocker = System.currentTimeMillis()
+    private var timeLineMocker = System.currentTimeMillis()
     private val onProgressGet = { _: String ->
-        (System.currentTimeMillis() - timeLineMocker) / 1000
+        val cur = (System.currentTimeMillis() - timeLineMocker)
+        cur
     }
 
 
