@@ -67,6 +67,7 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun startBarrage(): BarrageSurfaceView? {
+        timeLineMocker = System.currentTimeMillis()
         return BarrageDataStore.start(this, "11111", onProgressGet)
     }
 }

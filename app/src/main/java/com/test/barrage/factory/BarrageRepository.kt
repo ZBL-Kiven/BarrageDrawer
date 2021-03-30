@@ -1,8 +1,15 @@
 package com.test.barrage.factory
 
+import android.os.Looper
 import android.util.Log
+import com.test.barrage.BuildConfig
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import java.util.*
 import kotlin.Comparator
+import kotlin.coroutines.CoroutineContext
 import kotlin.random.Random
 
 /**
@@ -14,7 +21,9 @@ import kotlin.random.Random
  * Description:
 
  */
-object BarrageRepository {
+object BarrageRepository: CoroutineScope {
+
+    private var cycleComputeJob = Job()
 
     /**
      * If current time line arrived the point of cache size minus [PREFETCH_THRESHOLD], load next page barrages into cache.
@@ -62,9 +71,30 @@ object BarrageRepository {
             return field++
         }
 
+    private var handler: android.os.Handler = android.os.Handler(Looper.getMainLooper())
+
     private fun loadBarrage(token: String, start: Int, end: Int) {
         mToken = token
         mCachedTimeEnd = end
+
+        handler.postDelayed( {
+            launch {
+                synchronized(mBarrageQueue) {
+                    cleanUpInvalidateData()
+                    for (i in 0 until 150) {
+                        val barrage = Barrage()
+                        barrage.timeLine = mockedTime
+                        barrage.userId = Random.nextInt(1000000)
+                        barrage.priority = Random.nextInt(1)
+                        barrage.content = "${barrage.userId}==${barrage.timeLine}"
+                        mBarrageQueue.add(barrage)
+                    }
+                }
+            }
+        },2000)
+    }
+
+    private fun cleanUpInvalidateData() {
         mBarrageQueue.iterator().apply {
             while (hasNext()) {
                 val barrage = next()
@@ -75,34 +105,23 @@ object BarrageRepository {
                 }
             }
         }
-        // TODO: 2021/3/30 网络请求返回后的线程中锁住 mBarrageQueue添加数据
-        for (i in 0 until 150) {
-            val barrage = Barrage()
-            barrage.timeLine = mockedTime
-            barrage.userId = Random.nextInt(1000000)
-            barrage.priority = Random.nextInt(1)
-            barrage.content = "${barrage.userId}==${barrage.timeLine}"
-            mBarrageQueue.add(barrage)
-        }
-        if (mSortedBarrageQueue.size < CACHE_SORTED_BARRAGE_COUNT) {
-            fillSortedBarrageQueue()
-            Log.e(
-                "luzheng",
-                "loadBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue    @@@@$mTimeLine"
-            )
-        }
     }
 
-    private fun fillSortedBarrageQueue() {
-        val fillCount = CACHE_SORTED_BARRAGE_COUNT - mSortedBarrageQueue.size
-        for (i in 0 until fillCount.coerceAtMost(mBarrageQueue.size)) {
-            val barrage = mBarrageQueue.poll()
-            barrage?.let {
-                if (!mSortedBarrageQueue.contains(it)) {
+    private fun swapBarrageLocked(fillCount: Int) {
+        synchronized(mBarrageQueue) {
+            for (i in 0 until fillCount.coerceAtMost(mBarrageQueue.size)) {
+                val barrage = mBarrageQueue.poll()
+                barrage ?: break
+                if (!mSortedBarrageQueue.contains(barrage)) {
                     mSortedBarrageQueue.offer(barrage)
                 }
             }
         }
+    }
+
+    private fun fillSortedBarrageQueue() {
+        swapBarrageLocked(CACHE_SORTED_BARRAGE_COUNT - mSortedBarrageQueue.size)
+
         Collections.sort(mSortedBarrageQueue, Comparator { barrage1, barrage2 ->
             return@Comparator when (val timeOffset = barrage1.timeLine - barrage2.timeLine) {
                 0 -> (barrage2.priority - barrage1.priority)
@@ -143,16 +162,17 @@ object BarrageRepository {
         if (mTimeLine >= mCachedTimeEnd - PREFETCH_THRESHOLD) {
             loadBarrage(token, mCachedTimeEnd, mCachedTimeEnd + PAGE_SIZE)
         }
-        return mSortedBarrageQueue.poll()?.apply {
+        var barrage: Barrage?
+        synchronized(mSortedBarrageQueue) {
+            barrage = mSortedBarrageQueue.poll()
             fillSortedBarrageQueue()
-            if (isSelf()) Log.e(
-                "luzheng",
-                "pollBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue  ~~~~~$mTimeLine   @@@@$mCachedTimeEnd"
-            )
+            if (BuildConfig.DEBUG) Log.e("luzheng", "pollBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue   ->$mTimeLine   ->$mCachedTimeEnd")
         }
+        return barrage
     }
 
     fun release() {
+        cycleComputeJob.cancel()
         mSortedBarrageQueue.clear()
         mBarrageQueue.clear()
         mToken = ""
@@ -201,4 +221,7 @@ object BarrageRepository {
             return userId == 1
         }
     }
+
+    override val coroutineContext: CoroutineContext
+        get() = Dispatchers.Default + cycleComputeJob
 }
