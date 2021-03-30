@@ -20,8 +20,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @SuppressWarnings("unused")
 public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Callback {
 
-    private final DrawThread mDrawThread;
-    private RemoveFormParentListener removeFormParentListener;
+    protected final DrawThread mDrawThread;
+    protected RemoveFormParentListener removeFormParentListener;
 
     public DrawerSurfaceView(Context context) {
         this(context, null);
@@ -37,10 +37,10 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
         init();
     }
 
-    private BaseDrawer preDrawer, curDrawer;
-    private float curDrawerAlpha = 0f;
-    private int mWidth, mHeight;
-    private Object currentKey;
+    protected BaseDrawer preDrawer, curDrawer;
+    protected float curDrawerAlpha = 0f;
+    protected int mWidth, mHeight;
+    protected Object currentKey;
 
     private void init() {
         curDrawerAlpha = 0f;
@@ -51,13 +51,17 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
     }
 
     public void setDrawer(Object key, BaseDrawer drawer) {
-        if (key != currentKey) {
+        if (key != currentKey && drawer != null) {
             currentKey = key;
             setDrawer(drawer);
         }
     }
 
     private void setDrawer(BaseDrawer drawer) {
+        if (preDrawer != null) {
+            preDrawer.idleAllHolders();
+            preDrawer = null;
+        }
         curDrawerAlpha = 0f;
         if (this.curDrawer != null) {
             this.preDrawer = curDrawer;
@@ -95,11 +99,12 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
             preDrawer.draw(canvas, 1f - curDrawerAlpha);
         }
         if (curDrawerAlpha < 1f) {
-            curDrawerAlpha += 0.04f;
-            if (curDrawerAlpha > 1) {
+            curDrawerAlpha += 0.05f;
+            if (curDrawerAlpha >= 1) {
                 curDrawerAlpha = 1f;
                 if (preDrawer != null) preDrawer.idleAllHolders();
                 preDrawer = null;
+                if (curDrawer == null) onPause();
             }
         }
     }
@@ -118,6 +123,15 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
         synchronized (mDrawThread) {
             mDrawThread.notify();
         }
+    }
+
+    public void stop() {
+        currentKey = "";
+        if (curDrawer != null) {
+            preDrawer = curDrawer;
+        }
+        curDrawer = null;
+        curDrawerAlpha = 0f;
     }
 
     public void onDestroy() {
@@ -145,7 +159,8 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
     }
 
     @Override
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) { }
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+    }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
@@ -158,6 +173,13 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
     }
 
     @Override
+    @SuppressLint("ClickableViewAccessibility")
+    public boolean onTouchEvent(MotionEvent event) {
+        if (event == null || curDrawer == null) return true;
+        return curDrawer.onTouchEvent(this, event) || super.onTouchEvent(event);
+    }
+
+    @Override
     protected void onAttachedToWindow() {
         setZOrderOnTop(true);
         setLayerType(LAYER_TYPE_SOFTWARE, null);
@@ -165,13 +187,6 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
         if (mDrawThread.mQuit.get()) {
             init();
         }
-    }
-
-    @Override
-    @SuppressLint("ClickableViewAccessibility")
-    public boolean onTouchEvent(MotionEvent event) {
-        if (event == null || curDrawer == null) return true;
-        return curDrawer.onTouchEvent(this, event) || super.onTouchEvent(event);
     }
 
     private class DrawThread extends Thread {

@@ -84,7 +84,7 @@ public abstract class BaseDrawer {
         return (int) (spValue * Resources.getSystem().getDisplayMetrics().scaledDensity + 0.5F);
     }
 
-    void idleAllHolders() {
+    public void idleAllHolders() {
         if (holders != null) for (HoldersInfo<?, ?> info : holders) {
             info.idleAllHolders();
         }

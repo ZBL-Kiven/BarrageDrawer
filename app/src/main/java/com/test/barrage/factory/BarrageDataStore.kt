@@ -42,7 +42,12 @@ object BarrageDataStore {
         isFullMax = inMax
     }
 
-    fun start(context: Context, key: String, getTimeLineListener: ((key: String) -> Long), l: DrawerSurfaceView.RemoveFormParentListener): BarrageSurfaceView? {
+    fun start(
+        context: Context,
+        key: String,
+        getTimeLineListener: ((key: String) -> Long),
+        l: DrawerSurfaceView.RemoveFormParentListener
+    ): BarrageSurfaceView? {
         BarrageDataStore.getTimeLineListener = getTimeLineListener
         if (BarrageDataStore.key != key) {
             BarrageDataStore.key = key
@@ -66,7 +71,7 @@ object BarrageDataStore {
     }
 
     fun stop() {
-        barrageSurfaceView?.setDrawer("stop", null)
+        barrageSurfaceView?.stop()
         BarrageRepository.release()
     }
 
@@ -81,7 +86,8 @@ object BarrageDataStore {
         if (isPerDrawerRunning) return
         isPerDrawerRunning = true
         try {
-            var ballisticMap: MutableMap<Int, MutableList<BaseHolder<BarrageInfo>>>? = mutableMapOf()
+            var ballisticMap: MutableMap<Int, MutableList<BaseHolder<BarrageInfo>>>? =
+                mutableMapOf()
             if (curMaxBallisticNum <= 0) return
             val maxBallistic = getCurBallisticNum(width, height)
             holders.forEach { h ->
@@ -98,7 +104,9 @@ object BarrageDataStore {
                     val timeLine = getTimeLineListener?.invoke(key) ?: return@forEach
                     if (timeLine < 0) return@updateDrawers
                     val dataTimeLine = d.data?.timeLine ?: 0
-                    if (!d.stable || dataTimeLine >= timeLine || d.data?.isSelf() == true) curBallistic.add(h)
+                    if (!d.stable || dataTimeLine >= timeLine || d.data?.isSelf() == true) curBallistic.add(
+                        h
+                    )
                     else h.destroyAndIdle()
                 }
                 ballisticMap?.put(ballistic, curBallistic)
@@ -115,7 +123,8 @@ object BarrageDataStore {
                 }
                 if (nextIndex <= lastIndex) return@forEach
                 val lastData = if (lastIndex in 0..v.lastIndex) v[lastIndex].bindData else null
-                val nextData = (if (nextIndex in 0..v.lastIndex) v[nextIndex].bindData else null) ?: return@forEach
+                val nextData = (if (nextIndex in 0..v.lastIndex) v[nextIndex].bindData else null)
+                    ?: return@forEach
                 if (lastData == null) nextData.stable = false
                 else {
                     val lEnd = width - (lastData.start + lastData.width)
@@ -131,7 +140,12 @@ object BarrageDataStore {
         }
     }
 
-    fun getHolderData(paint: Paint, width: Int, height: Int, holder: BarrageDrawer.BarrageHolder): BarrageInfo? {
+    fun getHolderData(
+        paint: Paint,
+        width: Int,
+        height: Int,
+        holder: BarrageDrawer.BarrageHolder
+    ): BarrageInfo? {
         if (isPerDrawerRunning) return null
         val bInfo = BarrageInfo()
         val timeLine = (getTimeLineListener?.invoke(key))?.toInt() ?: return null
@@ -149,7 +163,10 @@ object BarrageDataStore {
         bInfo.ratio = br
         bInfo.lastStart = Random.nextFloat() * 100f + 200f
         if (height > 0) {
-            curMaxBallisticNum = ((height - ballisticInterval - topPadding) / (bInfo.height + ballisticInterval).coerceAtLeast(1f)).toInt()
+            curMaxBallisticNum =
+                ((height - ballisticInterval - topPadding) / (bInfo.height + ballisticInterval).coerceAtLeast(
+                    1f
+                )).toInt()
         }
         return bInfo
     }

@@ -153,25 +153,32 @@ object BarrageRepository : CoroutineScope {
     }
 
     fun pollBarrage(timeLine: Int, token: String): Barrage? {
-        if (token != mToken) {
-            mSortedBarrageQueue.clear()
-            loadBarrage(token, timeLine, timeLine + PAGE_SIZE)
-            return null
+//        if (token != mToken) {
+//            mSortedBarrageQueue.clear()
+//            loadBarrage(token, timeLine, timeLine + PAGE_SIZE)
+//            return null
+//        }
+//        mTimeLine = timeLine
+//        if (mTimeLine >= mCachedTimeEnd - PREFETCH_THRESHOLD) {
+//            loadBarrage(token, mCachedTimeEnd, mCachedTimeEnd + PAGE_SIZE)
+//        }
+//        var barrage: Barrage?
+//        synchronized(mSortedBarrageQueue) {
+//            barrage = mSortedBarrageQueue.poll()
+//            fillSortedBarrageQueue()
+//            if (BuildConfig.DEBUG) Log.e(
+//                "luzheng",
+//                "pollBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue   ->$mTimeLine   ->$mCachedTimeEnd"
+//            )
+//        }
+//        return barrage
+        return Barrage().apply {
+            this.content = "$token==$timeLine"
+            this.id = 1
+            this.priority = 1
+            this.timeLine = timeLine + 1
+            this.userId = 0
         }
-        mTimeLine = timeLine
-        if (mTimeLine >= mCachedTimeEnd - PREFETCH_THRESHOLD) {
-            loadBarrage(token, mCachedTimeEnd, mCachedTimeEnd + PAGE_SIZE)
-        }
-        var barrage: Barrage?
-        synchronized(mSortedBarrageQueue) {
-            barrage = mSortedBarrageQueue.poll()
-            fillSortedBarrageQueue()
-            if (BuildConfig.DEBUG) Log.e(
-                "luzheng",
-                "pollBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue   ->$mTimeLine   ->$mCachedTimeEnd"
-            )
-        }
-        return barrage
     }
 
     fun release() {
