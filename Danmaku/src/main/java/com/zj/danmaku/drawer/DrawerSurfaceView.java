@@ -7,7 +7,6 @@ import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.PorterDuff;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.SurfaceHolder;
@@ -233,7 +232,6 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
                     final long drawTime = AnimationUtils.currentAnimationTimeMillis() - startTime;
                     long needSleepTime = Math.max(1L, 16L - drawTime);
                     try {
-                        Log.e("-----", "" + drawTime);
                         //noinspection BusyWait
                         Thread.sleep(needSleepTime);
                     } catch (InterruptedException | IllegalArgumentException e) {
