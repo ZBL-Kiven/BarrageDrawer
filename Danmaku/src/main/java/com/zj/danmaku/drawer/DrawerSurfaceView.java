@@ -168,6 +168,9 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
         setZOrderOnTop(true);
         setLayerType(LAYER_TYPE_SOFTWARE, null);
         super.onAttachedToWindow();
+        if (mDrawThread.mQuit.get()) {
+            init();
+        }
     }
 
     @Override
@@ -182,22 +185,22 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
         AtomicBoolean mRunning = new AtomicBoolean(false);
         AtomicBoolean mActive = new AtomicBoolean(false);
         AtomicBoolean mQuit = new AtomicBoolean(false);
-        private Canvas canvas;
 
         private void release() {
-            try {
-                if (mSurface != null) {
-                    Surface surface = mSurface.getSurface();
-                    if (surface != null) {
-                        if (canvas != null) surface.unlockCanvasAndPost(canvas);
-                        surface.release();
+            synchronized (this) {
+                try {
+                    if (mSurface != null) {
+                        Surface surface = mSurface.getSurface();
+                        if (surface != null) {
+                            surface.release();
+                        }
                     }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    mSurface = null;
+                    post(DrawerSurfaceView.this::removeFormParent);
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                mSurface = null;
-                post(DrawerSurfaceView.this::removeFormParent);
             }
         }
 
@@ -209,7 +212,7 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
                         release();
                         return;
                     }
-                    while (mSurface == null || !mSurface.getSurface().isValid() || getParent() == null || !mRunning.get()) {
+                    while (mSurface == null || getParent() == null || !mRunning.get()) {
                         if (mActive.get()) {
                             mActive.set(false);
                             notify();
@@ -229,16 +232,24 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
                         notify();
                     }
                     final long startTime = AnimationUtils.currentAnimationTimeMillis();
-                    if (mSurface.getSurface().isValid()) {
-                        Canvas canvas = mSurface.lockCanvas();
+                    Canvas canvas = null;
+                    try {
+                        canvas = mSurface.lockCanvas();
                         if (canvas != null) {
                             canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
                             drawSurface(canvas);
-                            if (mSurface.getSurface().isValid()) mSurface.unlockCanvasAndPost(canvas);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    } finally {
+                        if (canvas != null) try {
+                            mSurface.unlockCanvasAndPost(canvas);
+                        } catch (IllegalStateException ie) {
+                            ie.printStackTrace();
                         }
                     }
                     final long drawTime = AnimationUtils.currentAnimationTimeMillis() - startTime;
-                    final long needSleepTime = 16 - drawTime;
+                    long needSleepTime = 16L - drawTime;
                     if (needSleepTime > 0) {
                         try {
                             //noinspection BusyWait
@@ -252,7 +263,7 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
         }
     }
 
-    interface RemoveFormParentListener {
+    public interface RemoveFormParentListener {
         void onRemoved();
     }
 }

@@ -2,21 +2,32 @@ package com.test.barrage
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import com.test.barrage.drawer.BarrageSurfaceView
 import com.test.barrage.factory.BarrageDataStore
 import com.test.barrage.factory.BarrageRepository
+import com.zj.danmaku.drawer.DrawerSurfaceView
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var container: FrameLayout
+    private lateinit var testContainer: FrameLayout
+    private lateinit var rmListener: DrawerSurfaceView.RemoveFormParentListener
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         container = findViewById(R.id.mContainer)
+        testContainer = findViewById(R.id.mTestContainer)
+        rmListener = DrawerSurfaceView.RemoveFormParentListener {
+            Handler(Looper.getMainLooper()).post {
+                testContainer.removeView(container)
+            }
+        }
     }
 
     fun clickToStart(v: View) {
@@ -55,8 +66,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun removeAndAdd(view: View) {
-        BarrageDataStore.destroy()
-        clickToStart(view)
+        testContainer.removeView(container)
+        //        BarrageDataStore.destroy()
     }
 
     private var timeLineMocker = System.currentTimeMillis()
@@ -67,6 +78,6 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun startBarrage(): BarrageSurfaceView? {
-        return BarrageDataStore.start(this, "11111", onProgressGet)
+        return BarrageDataStore.start(this, "11111", onProgressGet, rmListener)
     }
 }

@@ -9,6 +9,7 @@ import com.test.barrage.drawer.BarrageDrawer
 import com.test.barrage.drawer.BarrageSurfaceView
 import com.test.barrage.info.BarrageInfo
 import com.zj.danmaku.drawer.BaseHolder
+import com.zj.danmaku.drawer.DrawerSurfaceView
 import java.lang.Exception
 import kotlin.math.max
 import kotlin.random.Random
@@ -41,12 +42,13 @@ object BarrageDataStore {
         isFullMax = inMax
     }
 
-    fun start(context: Context, key: String, getTimeLineListener: ((key: String) -> Long)): BarrageSurfaceView? {
+    fun start(context: Context, key: String, getTimeLineListener: ((key: String) -> Long), l: DrawerSurfaceView.RemoveFormParentListener): BarrageSurfaceView? {
         BarrageDataStore.getTimeLineListener = getTimeLineListener
         if (BarrageDataStore.key != key) {
             BarrageDataStore.key = key
         }
         start(context)
+        barrageSurfaceView?.setOnRemoveFormParentListener(l)
         return barrageSurfaceView
     }
 
