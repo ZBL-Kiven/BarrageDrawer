@@ -1,6 +1,7 @@
 package com.test.barrage.factory
 
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import com.test.barrage.BuildConfig
 import kotlinx.coroutines.CoroutineScope
@@ -121,7 +122,6 @@ object BarrageRepository : CoroutineScope {
 
     private fun fillSortedBarrageQueue() {
         swapBarrageLocked(CACHE_SORTED_BARRAGE_COUNT - mSortedBarrageQueue.size)
-
         Collections.sort(mSortedBarrageQueue, Comparator { barrage1, barrage2 ->
             return@Comparator when (val timeOffset = barrage1.timeLine - barrage2.timeLine) {
                 0 -> (barrage2.priority - barrage1.priority)
@@ -131,7 +131,7 @@ object BarrageRepository : CoroutineScope {
         mSortedBarrageQueue.iterator().apply {
             while (hasNext()) {
                 val barrage = next()
-                if ((barrage.timeLine) < mTimeLine) {
+                if ((barrage.timeLine) < mTimeLine && barrage.priority < Barrage.PRIORITY_LOCAL_SEND) {
                     remove()
                 } else {
                     break
@@ -153,29 +153,25 @@ object BarrageRepository : CoroutineScope {
     }
 
     fun pollBarrage(timeLine: Int, token: String): Barrage? {
-//                if (token != mToken) {
-//                    mSortedBarrageQueue.clear()
-//                    loadBarrage(token, timeLine, timeLine + PAGE_SIZE)
-//                    return null
-//                }
-//                mTimeLine = timeLine
-//                if (mTimeLine >= mCachedTimeEnd - PREFETCH_THRESHOLD) {
-//                    loadBarrage(token, mCachedTimeEnd, mCachedTimeEnd + PAGE_SIZE)
-//                }
-//                var barrage: Barrage?
-//                synchronized(mSortedBarrageQueue) {
-//                    barrage = mSortedBarrageQueue.poll()
-//                    fillSortedBarrageQueue()
-//                    if (BuildConfig.DEBUG) Log.e("luzheng", "pollBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue   ->$mTimeLine   ->$mCachedTimeEnd")
-//                }
-//                return barrage
-        return Barrage().apply {
-            this.userId = 0
-            this.priority = 1
-            this.id = timeLine
-            this.content = "$token$timeLine"
-            this.timeLine = timeLine + 1
+        if (token != mToken) {
+            mSortedBarrageQueue.clear()
+            loadBarrage(token, timeLine, timeLine + PAGE_SIZE)
+            return null
         }
+        mTimeLine = timeLine
+        if (mTimeLine >= mCachedTimeEnd - PREFETCH_THRESHOLD) {
+            loadBarrage(token, mCachedTimeEnd, mCachedTimeEnd + PAGE_SIZE)
+        }
+        var barrage: Barrage?
+        synchronized(mSortedBarrageQueue) {
+            barrage = mSortedBarrageQueue.poll()
+            fillSortedBarrageQueue()
+            if (BuildConfig.DEBUG) Log.e(
+                "luzheng",
+                "pollBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue   ->$mTimeLine   ->$mCachedTimeEnd"
+            )
+        }
+        return barrage
     }
 
     fun release() {
