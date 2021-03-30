@@ -237,7 +237,6 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
                     } catch (InterruptedException | IllegalArgumentException e) {
                         e.printStackTrace();
                     }
-
                 }
             }
         }
