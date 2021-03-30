@@ -72,12 +72,13 @@ class MainActivity : AppCompatActivity() {
 
     private var timeLineMocker = System.currentTimeMillis()
     private val onProgressGet = { _: String ->
-        val cur = (System.currentTimeMillis() - timeLineMocker)
+        val cur = (System.currentTimeMillis() - timeLineMocker) / 1000
         cur
     }
 
 
     private fun startBarrage(): BarrageSurfaceView? {
+        timeLineMocker = System.currentTimeMillis()
         return BarrageDataStore.start(this, "11111", onProgressGet, rmListener)
     }
 }

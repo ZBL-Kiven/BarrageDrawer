@@ -1,9 +1,15 @@
 package com.test.barrage.factory
 
+import android.os.Looper
 import android.util.Log
+import com.test.barrage.BuildConfig
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import java.util.*
 import kotlin.Comparator
-import kotlin.collections.ArrayList
+import kotlin.coroutines.CoroutineContext
 import kotlin.random.Random
 
 /**
@@ -15,7 +21,9 @@ import kotlin.random.Random
  * Description:
 
  */
-object BarrageRepository {
+object BarrageRepository: CoroutineScope {
+
+    private var cycleComputeJob = Job()
 
     /**
      * If current time line arrived the point of cache size minus [PREFETCH_THRESHOLD], load next page barrages into cache.
@@ -35,7 +43,7 @@ object BarrageRepository {
     /**
      * The whole barrage buffer which contains the recent and soon (range [mCachedTimeEnd] to [mCachedTimeEnd] + [PAGE_SIZE]) barrages
      */
-    private val mBarrageQueue: MutableList<Barrage> = Collections.synchronizedList(ArrayList<Barrage>())
+    private val mBarrageQueue: LinkedList<Barrage> = LinkedList()
 
     /**
      * The sorted barrage buffer for surface poll barrage to draw.
@@ -63,9 +71,30 @@ object BarrageRepository {
             return field++
         }
 
+    private var handler: android.os.Handler = android.os.Handler(Looper.getMainLooper())
+
     private fun loadBarrage(token: String, start: Int, end: Int) {
         mToken = token
         mCachedTimeEnd = end
+
+        handler.postDelayed( {
+            launch {
+                synchronized(mBarrageQueue) {
+                    cleanUpInvalidateData()
+                    for (i in 0 until 150) {
+                        val barrage = Barrage()
+                        barrage.timeLine = mockedTime
+                        barrage.userId = Random.nextInt(1000000)
+                        barrage.priority = Random.nextInt(1)
+                        barrage.content = "${barrage.userId}==${barrage.timeLine}"
+                        mBarrageQueue.add(barrage)
+                    }
+                }
+            }
+        },2000)
+    }
+
+    private fun cleanUpInvalidateData() {
         mBarrageQueue.iterator().apply {
             while (hasNext()) {
                 val barrage = next()
@@ -76,28 +105,23 @@ object BarrageRepository {
                 }
             }
         }
-        for (i in 0 until 150) {
-            val barrage = Barrage()
-            barrage.timeLine = mockedTime
-            barrage.userId = Random.nextInt(100)
-            barrage.priority = Random.nextInt(1)
-            barrage.content = "content : ${barrage.timeLine}"
-            mBarrageQueue.add(barrage)
-        }
-        if (mSortedBarrageQueue.size < CACHE_SORTED_BARRAGE_COUNT) {
-            fillSortedBarrageQueue()
-            Log.e("luzheng", "loadBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue    @@@@$mTimeLine")
+    }
+
+    private fun swapBarrageLocked(fillCount: Int) {
+        synchronized(mBarrageQueue) {
+            for (i in 0 until fillCount.coerceAtMost(mBarrageQueue.size)) {
+                val barrage = mBarrageQueue.poll()
+                barrage ?: break
+                if (!mSortedBarrageQueue.contains(barrage)) {
+                    mSortedBarrageQueue.offer(barrage)
+                }
+            }
         }
     }
 
     private fun fillSortedBarrageQueue() {
-        val fillCount = CACHE_SORTED_BARRAGE_COUNT - mSortedBarrageQueue.size
-        for (i in 0 until fillCount.coerceAtMost(mBarrageQueue.size)) {
-            val barrage = mBarrageQueue[i]
-            if (!mSortedBarrageQueue.contains(barrage)) {
-                mSortedBarrageQueue.offer(barrage)
-            }
-        }
+        swapBarrageLocked(CACHE_SORTED_BARRAGE_COUNT - mSortedBarrageQueue.size)
+
         Collections.sort(mSortedBarrageQueue, Comparator { barrage1, barrage2 ->
             return@Comparator when (val timeOffset = barrage1.timeLine - barrage2.timeLine) {
                 0 -> (barrage2.priority - barrage1.priority)
@@ -125,34 +149,30 @@ object BarrageRepository {
             barrage.userId = 1
             barrage.timeLine = mTimeLine
             mSortedBarrageQueue.addFirst(barrage)
-            //            Log.e("luzheng", "commitBarrage: $mSortedBarrageQueue ")
         }
     }
 
-    @Synchronized
     fun pollBarrage(timeLine: Int, token: String): Barrage? {
-        //        if (token != mToken) {
-        //            mSortedBarrageQueue.clear()
-        //            loadBarrage(token, timeLine, timeLine + PAGE_SIZE)
-        //            return null
-        //        }
-        //        mTimeLine = timeLine
-        //        if (mTimeLine >= mCachedTimeEnd - PREFETCH_THRESHOLD) {
-        //            loadBarrage(token, mCachedTimeEnd, mCachedTimeEnd + PAGE_SIZE)
-        //        }
-        //        return mSortedBarrageQueue.poll()?.apply {
-        //            fillSortedBarrageQueue()
-        //            if (isSelf()) Log.e("luzheng", "pollBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue  ~~~~~$mTimeLine   @@@@$mCachedTimeEnd")
-        //        }
-        return Barrage().apply {
-            this.content = "$token==$timeLine"
-            this.id = 1
-            this.priority = 1
-            this.userId = 1
+        if (token != mToken) {
+            mSortedBarrageQueue.clear()
+            loadBarrage(token, timeLine, timeLine + PAGE_SIZE)
+            return null
         }
+        mTimeLine = timeLine
+        if (mTimeLine >= mCachedTimeEnd - PREFETCH_THRESHOLD) {
+            loadBarrage(token, mCachedTimeEnd, mCachedTimeEnd + PAGE_SIZE)
+        }
+        var barrage: Barrage?
+        synchronized(mSortedBarrageQueue) {
+            barrage = mSortedBarrageQueue.poll()
+            fillSortedBarrageQueue()
+            if (BuildConfig.DEBUG) Log.e("luzheng", "pollBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue   ->$mTimeLine   ->$mCachedTimeEnd")
+        }
+        return barrage
     }
 
     fun release() {
+        cycleComputeJob.cancel()
         mSortedBarrageQueue.clear()
         mBarrageQueue.clear()
         mToken = ""
@@ -194,11 +214,14 @@ object BarrageRepository {
         var priority: Int = PRIORITY_NORMAL
 
         override fun toString(): String {
-            return "$timeLine"
+            return "$userId==$timeLine"
         }
 
         fun isSelf(): Boolean {
             return userId == 1
         }
     }
+
+    override val coroutineContext: CoroutineContext
+        get() = Dispatchers.Default + cycleComputeJob
 }
