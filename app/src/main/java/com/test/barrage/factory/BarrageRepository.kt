@@ -21,7 +21,7 @@ import kotlin.random.Random
  * Description:
 
  */
-object BarrageRepository: CoroutineScope {
+object BarrageRepository : CoroutineScope {
 
     private var cycleComputeJob = Job()
 
@@ -77,7 +77,7 @@ object BarrageRepository: CoroutineScope {
         mToken = token
         mCachedTimeEnd = end
 
-        handler.postDelayed( {
+        handler.postDelayed({
             launch {
                 synchronized(mBarrageQueue) {
                     cleanUpInvalidateData()
@@ -91,7 +91,7 @@ object BarrageRepository: CoroutineScope {
                     }
                 }
             }
-        },2000)
+        }, 2000)
     }
 
     private fun cleanUpInvalidateData() {
@@ -153,22 +153,29 @@ object BarrageRepository: CoroutineScope {
     }
 
     fun pollBarrage(timeLine: Int, token: String): Barrage? {
-        if (token != mToken) {
-            mSortedBarrageQueue.clear()
-            loadBarrage(token, timeLine, timeLine + PAGE_SIZE)
-            return null
+//                if (token != mToken) {
+//                    mSortedBarrageQueue.clear()
+//                    loadBarrage(token, timeLine, timeLine + PAGE_SIZE)
+//                    return null
+//                }
+//                mTimeLine = timeLine
+//                if (mTimeLine >= mCachedTimeEnd - PREFETCH_THRESHOLD) {
+//                    loadBarrage(token, mCachedTimeEnd, mCachedTimeEnd + PAGE_SIZE)
+//                }
+//                var barrage: Barrage?
+//                synchronized(mSortedBarrageQueue) {
+//                    barrage = mSortedBarrageQueue.poll()
+//                    fillSortedBarrageQueue()
+//                    if (BuildConfig.DEBUG) Log.e("luzheng", "pollBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue   ->$mTimeLine   ->$mCachedTimeEnd")
+//                }
+//                return barrage
+        return Barrage().apply {
+            this.userId = 0
+            this.priority = 1
+            this.id = timeLine
+            this.content = "$token$timeLine"
+            this.timeLine = timeLine + 1
         }
-        mTimeLine = timeLine
-        if (mTimeLine >= mCachedTimeEnd - PREFETCH_THRESHOLD) {
-            loadBarrage(token, mCachedTimeEnd, mCachedTimeEnd + PAGE_SIZE)
-        }
-        var barrage: Barrage?
-        synchronized(mSortedBarrageQueue) {
-            barrage = mSortedBarrageQueue.poll()
-            fillSortedBarrageQueue()
-            if (BuildConfig.DEBUG) Log.e("luzheng", "pollBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue   ->$mTimeLine   ->$mCachedTimeEnd")
-        }
-        return barrage
     }
 
     fun release() {

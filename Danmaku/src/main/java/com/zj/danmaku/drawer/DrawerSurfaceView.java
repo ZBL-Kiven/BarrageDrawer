@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.PorterDuff;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.SurfaceHolder;
@@ -149,16 +150,10 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
+        mDrawThread.mRunning.set(false);
         synchronized (mDrawThread) {
             mDrawThread.mSurface = holder;
             mDrawThread.notify();
-            while (mDrawThread.mActive.get()) {
-                try {
-                    mDrawThread.wait();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
         }
         holder.removeCallback(this);
     }
@@ -183,7 +178,6 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
     private class DrawThread extends Thread {
         SurfaceHolder mSurface;
         AtomicBoolean mRunning = new AtomicBoolean(false);
-        AtomicBoolean mActive = new AtomicBoolean(false);
         AtomicBoolean mQuit = new AtomicBoolean(false);
 
         private void release() {
@@ -208,28 +202,16 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
         public void run() {
             while (true) {
                 synchronized (this) {
-                    if (mQuit.get()) {
-                        release();
-                        return;
-                    }
-                    while (mSurface == null || getParent() == null || !mRunning.get()) {
-                        if (mActive.get()) {
-                            mActive.set(false);
-                            notify();
-                        }
+                    if (mSurface == null || mQuit.get() || !mRunning.get()) {
                         if (mQuit.get()) {
                             release();
                             return;
                         }
                         try {
-                            wait();
+                            this.wait();
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
-                    }
-                    if (!mActive.get()) {
-                        mActive.set(true);
-                        notify();
                     }
                     final long startTime = AnimationUtils.currentAnimationTimeMillis();
                     Canvas canvas = null;
@@ -249,15 +231,15 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
                         }
                     }
                     final long drawTime = AnimationUtils.currentAnimationTimeMillis() - startTime;
-                    long needSleepTime = 16L - drawTime;
-                    if (needSleepTime > 0) {
-                        try {
-                            //noinspection BusyWait
-                            Thread.sleep(needSleepTime);
-                        } catch (InterruptedException | IllegalArgumentException e) {
-                            e.printStackTrace();
-                        }
+                    long needSleepTime = Math.max(1L, 16L - drawTime);
+                    try {
+                        Log.e("-----", "" + drawTime);
+                        //noinspection BusyWait
+                        Thread.sleep(needSleepTime);
+                    } catch (InterruptedException | IllegalArgumentException e) {
+                        e.printStackTrace();
                     }
+
                 }
             }
         }
