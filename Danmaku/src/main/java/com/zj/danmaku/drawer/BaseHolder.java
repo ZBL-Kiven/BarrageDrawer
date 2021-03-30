@@ -11,7 +11,6 @@ import androidx.annotation.NonNull;
 @SuppressWarnings("unused")
 public abstract class BaseHolder<T> {
 
-    private boolean isIdleState = true;
     public final int position;
     public Context context;
     public T bindData = null;
@@ -23,11 +22,11 @@ public abstract class BaseHolder<T> {
     }
 
     final boolean isInitialized() {
-        return !isIdleState;
+        return bindData != null;
     }
 
     final boolean isIdle() {
-        return isIdleState;
+        return !isInitialized();
     }
 
     public boolean isDrawInTopLayer() {
@@ -36,7 +35,6 @@ public abstract class BaseHolder<T> {
 
     public void bindData(T data) {
         this.bindData = data;
-        this.isIdleState = false;
     }
 
     public BaseHolder(int position) {
@@ -50,8 +48,7 @@ public abstract class BaseHolder<T> {
 
     @CallSuper
     public void destroyAndIdle() {
-        bindData = null;
         context = null;
-        isIdleState = true;
+        bindData = null;
     }
 }
