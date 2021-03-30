@@ -3,7 +3,6 @@ package com.test.barrage.factory
 import android.util.Log
 import java.util.*
 import kotlin.Comparator
-import kotlin.collections.ArrayList
 import kotlin.random.Random
 
 /**
@@ -35,7 +34,7 @@ object BarrageRepository {
     /**
      * The whole barrage buffer which contains the recent and soon (range [mCachedTimeEnd] to [mCachedTimeEnd] + [PAGE_SIZE]) barrages
      */
-    private val mBarrageQueue: MutableList<Barrage> = Collections.synchronizedList(ArrayList<Barrage>())
+    private val mBarrageQueue: LinkedList<Barrage> = LinkedList()
 
     /**
      * The sorted barrage buffer for surface poll barrage to draw.
@@ -76,26 +75,32 @@ object BarrageRepository {
                 }
             }
         }
+        // TODO: 2021/3/30 网络请求返回后的线程中锁住 mBarrageQueue添加数据
         for (i in 0 until 150) {
             val barrage = Barrage()
             barrage.timeLine = mockedTime
-            barrage.userId = Random.nextInt(100)
+            barrage.userId = Random.nextInt(1000000)
             barrage.priority = Random.nextInt(1)
-            barrage.content = "content : ${barrage.timeLine}"
+            barrage.content = "${barrage.userId}==${barrage.timeLine}"
             mBarrageQueue.add(barrage)
         }
         if (mSortedBarrageQueue.size < CACHE_SORTED_BARRAGE_COUNT) {
             fillSortedBarrageQueue()
-            Log.e("luzheng", "loadBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue    @@@@$mTimeLine")
+            Log.e(
+                "luzheng",
+                "loadBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue    @@@@$mTimeLine"
+            )
         }
     }
 
     private fun fillSortedBarrageQueue() {
         val fillCount = CACHE_SORTED_BARRAGE_COUNT - mSortedBarrageQueue.size
         for (i in 0 until fillCount.coerceAtMost(mBarrageQueue.size)) {
-            val barrage = mBarrageQueue[i]
-            if (!mSortedBarrageQueue.contains(barrage)) {
-                mSortedBarrageQueue.offer(barrage)
+            val barrage = mBarrageQueue.poll()
+            barrage?.let {
+                if (!mSortedBarrageQueue.contains(it)) {
+                    mSortedBarrageQueue.offer(barrage)
+                }
             }
         }
         Collections.sort(mSortedBarrageQueue, Comparator { barrage1, barrage2 ->
@@ -125,30 +130,25 @@ object BarrageRepository {
             barrage.userId = 1
             barrage.timeLine = mTimeLine
             mSortedBarrageQueue.addFirst(barrage)
-            //            Log.e("luzheng", "commitBarrage: $mSortedBarrageQueue ")
         }
     }
 
-    @Synchronized
     fun pollBarrage(timeLine: Int, token: String): Barrage? {
-        //        if (token != mToken) {
-        //            mSortedBarrageQueue.clear()
-        //            loadBarrage(token, timeLine, timeLine + PAGE_SIZE)
-        //            return null
-        //        }
-        //        mTimeLine = timeLine
-        //        if (mTimeLine >= mCachedTimeEnd - PREFETCH_THRESHOLD) {
-        //            loadBarrage(token, mCachedTimeEnd, mCachedTimeEnd + PAGE_SIZE)
-        //        }
-        //        return mSortedBarrageQueue.poll()?.apply {
-        //            fillSortedBarrageQueue()
-        //            if (isSelf()) Log.e("luzheng", "pollBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue  ~~~~~$mTimeLine   @@@@$mCachedTimeEnd")
-        //        }
-        return Barrage().apply {
-            this.content = "$token==$timeLine"
-            this.id = 1
-            this.priority = 1
-            this.userId = 1
+        if (token != mToken) {
+            mSortedBarrageQueue.clear()
+            loadBarrage(token, timeLine, timeLine + PAGE_SIZE)
+            return null
+        }
+        mTimeLine = timeLine
+        if (mTimeLine >= mCachedTimeEnd - PREFETCH_THRESHOLD) {
+            loadBarrage(token, mCachedTimeEnd, mCachedTimeEnd + PAGE_SIZE)
+        }
+        return mSortedBarrageQueue.poll()?.apply {
+            fillSortedBarrageQueue()
+            if (isSelf()) Log.e(
+                "luzheng",
+                "pollBarrage -> fillSortedBarrageQueue: $mSortedBarrageQueue  ~~~~~$mTimeLine   @@@@$mCachedTimeEnd"
+            )
         }
     }
 
@@ -194,7 +194,7 @@ object BarrageRepository {
         var priority: Int = PRIORITY_NORMAL
 
         override fun toString(): String {
-            return "$timeLine"
+            return "$userId==$timeLine"
         }
 
         fun isSelf(): Boolean {

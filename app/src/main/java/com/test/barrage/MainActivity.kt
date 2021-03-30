@@ -61,7 +61,7 @@ class MainActivity : AppCompatActivity() {
 
     private var timeLineMocker = System.currentTimeMillis()
     private val onProgressGet = { _: String ->
-        val cur = (System.currentTimeMillis() - timeLineMocker)
+        val cur = (System.currentTimeMillis() - timeLineMocker) / 1000
         cur
     }
 
