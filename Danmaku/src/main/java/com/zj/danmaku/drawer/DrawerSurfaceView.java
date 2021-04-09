@@ -82,7 +82,6 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
     }
 
     private void drawSurface(Canvas canvas) {
-        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
         final int w = mWidth;
         final int h = mHeight;
         if (w == 0 || h == 0) {
@@ -104,7 +103,10 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
                 curDrawerAlpha = 1f;
                 if (preDrawer != null) preDrawer.idleAllHolders();
                 preDrawer = null;
-                if (curDrawer == null) onPause();
+                if (curDrawer == null) {
+                    canvas.restore();
+                    onPause();
+                }
             }
         }
     }
