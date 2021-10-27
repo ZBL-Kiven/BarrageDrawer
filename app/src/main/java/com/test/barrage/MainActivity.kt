@@ -37,7 +37,10 @@ class MainActivity : AppCompatActivity() {
                 it.removeView(barrageView);true
             } else false
         } ?: true
-        if (needAdd) container.addView(barrageView, FrameLayout.LayoutParams(-1, -1)) else BarrageDataStore.resume()
+        if (needAdd) container.addView(
+            barrageView,
+            FrameLayout.LayoutParams(-1, -1)
+        ) else BarrageDataStore.resume()
     }
 
     fun clickToStop(v: View) {
@@ -67,7 +70,7 @@ class MainActivity : AppCompatActivity() {
 
     fun removeAndAdd(view: View) {
         testContainer.removeView(container)
-        //        BarrageDataStore.destroy()
+        BarrageDataStore.destroy()
     }
 
     private var timeLineMocker = System.currentTimeMillis()

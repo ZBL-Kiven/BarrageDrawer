@@ -6,7 +6,6 @@ import android.os.Handler
 import android.os.Looper
 import android.view.MotionEvent
 import android.widget.Toast
-import androidx.core.graphics.contains
 import com.test.barrage.factory.BarrageDataStore
 import com.test.barrage.graphics.UTL
 import com.test.barrage.info.BarrageInfo
@@ -21,7 +20,14 @@ abstract class BarrageDrawer(context: Context) : BaseDrawer(context) {
     abstract fun getHolderData(width: Int, height: Int, holder: BarrageHolder): BarrageInfo?
     abstract fun onHolderClick(v: DrawerSurfaceView, x: Int, y: Int, barrageHolder: BarrageHolder)
     abstract fun updateDrawers(width: Int, height: Int, holders: List<BarrageHolder>)
-    abstract fun updateFrame(holder: BarrageHolder, canvas: Canvas?, width: Int, height: Int, changedAlpha: Float)
+    abstract fun updateFrame(
+        holder: BarrageHolder,
+        canvas: Canvas?,
+        width: Int,
+        height: Int,
+        changedAlpha: Float
+    )
+
     abstract fun getBarragePaint(): Paint
 
     var hidden: Boolean = false
@@ -37,7 +43,11 @@ abstract class BarrageDrawer(context: Context) : BaseDrawer(context) {
                 return BarrageHolder(position)
             }
 
-            override fun getHolderData(width: Int, height: Int, holder: BarrageHolder): BarrageInfo? {
+            override fun getHolderData(
+                width: Int,
+                height: Int,
+                holder: BarrageHolder
+            ): BarrageInfo? {
                 return this@BarrageDrawer.getHolderData(width, height, holder)
             }
 
@@ -66,23 +76,27 @@ abstract class BarrageDrawer(context: Context) : BaseDrawer(context) {
 
         override fun onTouchEvent(v: DrawerSurfaceView, event: MotionEvent): Boolean {
             bindData?.let {
-                val point = PointF(event.x, event.y)
                 val rect = RectF(it.start, it.top, it.start + it.width, it.top + it.height)
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
-                        if (rect.contains(point)) {
+                        if (rect.contains(event.x, event.y)) {
                             isPausedMove = true
                             return true
                         }
                     }
                     MotionEvent.ACTION_MOVE -> {
-                        if (!rect.contains(point)) {
+                        if (!rect.contains(event.x, event.y)) {
                             isPausedMove = false
                         }
                     }
                     MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_UP -> {
-                        if (rect.contains(point)) {
-                            this@BarrageDrawer.onHolderClick(v, event.x.toInt(), event.y.toInt(), this)
+                        if (rect.contains(event.x, event.y)) {
+                            this@BarrageDrawer.onHolderClick(
+                                v,
+                                event.x.toInt(),
+                                event.y.toInt(),
+                                this
+                            )
                             return true
                         } else {
                             isPausedMove = false
@@ -115,7 +129,13 @@ abstract class BarrageDrawer(context: Context) : BaseDrawer(context) {
             BarrageDataStore.updateDrawers(width, height, holders)
         }
 
-        override fun updateFrame(holder: BarrageHolder, canvas: Canvas?, width: Int, height: Int, changedAlpha: Float) {
+        override fun updateFrame(
+            holder: BarrageHolder,
+            canvas: Canvas?,
+            width: Int,
+            height: Int,
+            changedAlpha: Float
+        ) {
             try {
                 val info = holder.bindData
                 val paint = getBarragePaint()
@@ -126,7 +146,12 @@ abstract class BarrageDrawer(context: Context) : BaseDrawer(context) {
                 if (holder.isDrawInTopLayer) {
                     val pah = dp2px(15f)
                     val pav = dp2px(10f)
-                    val rect = RectF(info.start - pah, info.top - pav, info.start + info.width + pah, info.top + info.height + pav)
+                    val rect = RectF(
+                        info.start - pah,
+                        info.top - pav,
+                        info.start + info.width + pah,
+                        info.top + info.height + pav
+                    )
                     canvas?.drawRoundRect(rect, pah, pah, pausedItemPaint)
                 }
                 if (info.start > -info.width) {
@@ -147,9 +172,18 @@ abstract class BarrageDrawer(context: Context) : BaseDrawer(context) {
         }
 
         private val handler = Handler(Looper.getMainLooper())
-        override fun onHolderClick(v: DrawerSurfaceView, x: Int, y: Int, barrageHolder: BarrageHolder) {
+        override fun onHolderClick(
+            v: DrawerSurfaceView,
+            x: Int,
+            y: Int,
+            barrageHolder: BarrageHolder
+        ) {
             handler.post {
-                Toast.makeText(context, "holder clicked! ==>  ${barrageHolder.bindData.data?.content}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    "holder clicked! ==>  ${barrageHolder.bindData.data?.content}",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
             handler.postDelayed({ barrageHolder.isPausedMove = false }, 500)
         }

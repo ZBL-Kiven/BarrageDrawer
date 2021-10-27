@@ -44,10 +44,16 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
 
     private void init() {
         curDrawerAlpha = 0f;
-        final SurfaceHolder surfaceHolder = getHolder();
-        surfaceHolder.addCallback(this);
-        surfaceHolder.setFormat(PixelFormat.TRANSLUCENT);
-        mDrawThread.start();
+        try {
+            final SurfaceHolder surfaceHolder = getHolder();
+            surfaceHolder.addCallback(this);
+            surfaceHolder.setFormat(PixelFormat.TRANSLUCENT);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        synchronized (mDrawThread) {
+            mDrawThread.start();
+        }
     }
 
     public void setDrawer(Object key, BaseDrawer drawer) {
@@ -187,7 +193,7 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
         setLayerType(LAYER_TYPE_SOFTWARE, null);
         super.onAttachedToWindow();
         if (mDrawThread.mQuit.get()) {
-            init();
+            post(this::init);
         }
     }
 
@@ -231,21 +237,22 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
                     }
                     final long startTime = AnimationUtils.currentAnimationTimeMillis();
                     Canvas canvas = null;
-                    try {
-                        canvas = mSurface.lockCanvas();
-                        if (canvas != null) {
-                            canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
-                            drawSurface(canvas);
+                    if (mSurface != null)
+                        try {
+                            canvas = mSurface.lockCanvas();
+                            if (canvas != null) {
+                                canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+                                drawSurface(canvas);
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        } finally {
+                            if (canvas != null) try {
+                                mSurface.unlockCanvasAndPost(canvas);
+                            } catch (IllegalStateException ie) {
+                                ie.printStackTrace();
+                            }
                         }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    } finally {
-                        if (canvas != null) try {
-                            mSurface.unlockCanvasAndPost(canvas);
-                        } catch (IllegalStateException ie) {
-                            ie.printStackTrace();
-                        }
-                    }
                     final long drawTime = AnimationUtils.currentAnimationTimeMillis() - startTime;
                     long needSleepTime = Math.max(1L, 16L - drawTime);
                     try {
