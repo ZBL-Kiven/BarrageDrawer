@@ -52,7 +52,11 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
             e.printStackTrace();
         }
         synchronized (mDrawThread) {
-            mDrawThread.start();
+            try {
+                mDrawThread.start();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
