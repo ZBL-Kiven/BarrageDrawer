@@ -249,7 +249,7 @@ public class DrawerSurfaceView extends SurfaceView implements SurfaceHolder.Call
                         } finally {
                             if (canvas != null) try {
                                 mSurface.unlockCanvasAndPost(canvas);
-                            } catch (IllegalStateException ie) {
+                            } catch (Exception ie) {
                                 ie.printStackTrace();
                             }
                         }
